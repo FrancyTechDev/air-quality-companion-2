@@ -113,7 +113,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <NeuroHealthSection risk={neuroRisk} />
+            <NeuroHealthSection risk={neuroRisk} history={history} />
           </motion.div>
         );
       
