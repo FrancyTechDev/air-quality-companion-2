@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: air-quality-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node backend/server.js
+    autoDeploy: true
