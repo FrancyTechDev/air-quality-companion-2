@@ -35,7 +35,7 @@ export const useSensorData = () => {
           // Il backend manda 'lon', il frontend usa 'lng'
           lat: Number(item.lat),
           lng: Number(item.lon), 
-          timestamp: new Date(item.timestamp)
+          timestamp: new Date(Number(item.timestamp))
         }));
 
         setHistory(formattedHistory);
@@ -75,7 +75,7 @@ export const useSensorData = () => {
         pm10: Number(payload.pm10),
         lat: Number(payload.lat),
         lng: Number(payload.lon), // Mappatura lon -> lng
-        timestamp: new Date(payload.timestamp)
+        timestamp: new Date(Number(payload.timestamp))
       };
 
       // Aggiorna dato corrente
@@ -151,3 +151,4 @@ export const useGPSTracking = () => {
   
   return { position, error, isTracking, startTracking, stopTracking };
 };
+
