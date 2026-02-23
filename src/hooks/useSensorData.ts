@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 
 // URL del backend (assicurati che corrisponda a quello dell'ESP32 o usa window.location.origin se in prod)
 // Se lavori in locale e il backend è su un'altra porta, metti l'URL intero, es: "http://localhost:3000"
-const SERVER_URL = "https://air-quality-companion-2.onrender.com"; 
+const SERVER_URL = window.location.origin; 
 
 export const useSensorData = () => {
   const [currentData, setCurrentData] = useState<SensorData>({
