@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { BarChart3, TrendingUp, Clock, Download } from 'lucide-react';
 import { SensorData, getAirQualityInfo } from '@/lib/airQuality';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 interface AnalyticsSectionProps {
@@ -24,15 +24,24 @@ interface AnalyticsSectionProps {
 
 const AnalyticsSection = ({ history, currentData }: AnalyticsSectionProps) => {
   const chartData = useMemo(() => {
-    return history.slice(-30).map((d) => {
-      const date = d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp);
-      return {
-        time: format(date, 'HH:mm:ss'),
-        fullDate: format(date, 'dd/MM/yyyy HH:mm:ss'),
-        pm25: d.pm25,
-        pm10: d.pm10
-      };
-    });
+  const toValidDate = (value: unknown): Date | null => {
+    const d = value instanceof Date ? value : new Date(value as any);
+    return isValid(d) ? d : null;
+  };
+
+        return history
+      .slice(-30)
+      .map((d) => {
+        const date = toValidDate(d.timestamp);
+        if (!date) return null;
+        return {
+          time: format(date, 'HH:mm:ss'),
+          fullDate: format(date, 'dd/MM/yyyy HH:mm:ss'),
+          pm25: d.pm25,
+          pm10: d.pm10
+        };
+      })
+      .filter(Boolean);
   }, [history]);
 
   const downloadCSV = () => {
@@ -40,7 +49,7 @@ const AnalyticsSection = ({ history, currentData }: AnalyticsSectionProps) => {
 
     const headers = ['Data e Ora', 'PM2.5 (ug/m3)', 'PM10 (ug/m3)', 'Latitudine', 'Longitudine'];
     const rows = history.map(d => {
-      const date = d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp);
+      const date = toValidDate(d.timestamp) || new Date();
       return [
         format(date, 'dd/MM/yyyy HH:mm:ss'),
         d.pm25,
@@ -254,3 +263,4 @@ const AnalyticsSection = ({ history, currentData }: AnalyticsSectionProps) => {
 };
 
 export default AnalyticsSection;
+
