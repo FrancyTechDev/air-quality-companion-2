@@ -23,13 +23,13 @@ interface AnalyticsSectionProps {
 }
 
 const AnalyticsSection = ({ history, currentData }: AnalyticsSectionProps) => {
-  const chartData = useMemo(() => {
   const toValidDate = (value: unknown): Date | null => {
     const d = value instanceof Date ? value : new Date(value as any);
     return isValid(d) ? d : null;
   };
 
-        return history
+  const chartData = useMemo(() => {
+    return history
       .slice(-30)
       .map((d) => {
         const date = toValidDate(d.timestamp);
