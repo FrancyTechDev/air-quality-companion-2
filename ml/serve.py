@@ -9,7 +9,8 @@ import psycopg2
 DB_URL = os.getenv("DATABASE_URL")
 MODEL_PATH = Path("./models/air_quality_model.joblib")
 LAGS = 6
-HORIZON = [1, 2, 3]\nHORIZON_PRED = [1, 2, 3, 4, 5]
+HORIZON = [1, 2, 3]
+HORIZON_PRED = [1, 2, 3, 4, 5]
 WHO_THRESHOLD = 15.0
 
 app = FastAPI()
