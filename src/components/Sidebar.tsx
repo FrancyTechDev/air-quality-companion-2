@@ -1,14 +1,26 @@
 import { motion } from 'framer-motion';
-import { 
-  Map, 
-  BarChart3, 
-  Sparkles, 
-  Brain, 
+import {
+  Map,
+  BarChart3,
+  Sparkles,
+  Brain,
   Radio,
-  Wind
+  Wind,
+  Activity,
+  FileText
 } from 'lucide-react';
 
-export type Section = 'map' | 'analytics' | 'forecast' | 'neurohealth' | 'exposure' | 'sources' | 'thresholds' | 'system';
+export type Section =
+  | 'map'
+  | 'analytics'
+  | 'forecast'
+  | 'neurohealth'
+  | 'exposure'
+  | 'sources'
+  | 'thresholds'
+  | 'system'
+  | 'risk'
+  | 'report';
 
 interface SidebarProps {
   activeSection: Section;
@@ -24,7 +36,9 @@ const navItems = [
   { id: 'exposure' as Section, label: 'Exposure', icon: BarChart3 },
   { id: 'sources' as Section, label: 'Sorgenti', icon: Wind },
   { id: 'thresholds' as Section, label: 'Soglie AI', icon: Sparkles },
+  { id: 'risk' as Section, label: 'Risk Timeline', icon: Activity },
   { id: 'system' as Section, label: 'Sistema', icon: Radio },
+  { id: 'report' as Section, label: 'Report AI', icon: FileText },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) => {
@@ -35,7 +49,6 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
       animate={{ x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent">
@@ -48,7 +61,6 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
         </div>
       </div>
 
-      {/* Connection Status */}
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-air-excellent animate-pulse' : 'bg-air-dangerous'}`} />
@@ -59,7 +71,6 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="p-4 space-y-2">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4 px-2">
           Navigazione
@@ -83,7 +94,6 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
         <div className="glass-panel p-4 text-center">
           <p className="text-xs text-muted-foreground mb-2">Qualità dati</p>
@@ -103,4 +113,3 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
 };
 
 export default Sidebar;
-

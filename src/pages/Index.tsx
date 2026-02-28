@@ -10,6 +10,8 @@ import ExposureSection from '@/components/ExposureSection';
 import SourceSection from '@/components/SourceSection';
 import ThresholdSection from '@/components/ThresholdSection';
 import SystemSection from '@/components/SystemSection';
+import RiskTimelineSection from '@/components/RiskTimelineSection';
+import ReportSection from '@/components/ReportSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
@@ -157,6 +159,19 @@ const Index = () => {
           </motion.div>
         );
 
+      case 'risk':
+        return (
+          <motion.div
+            key="risk"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <RiskTimelineSection history={history} />
+          </motion.div>
+        );
+
       case 'system':
         return (
           <motion.div
@@ -167,6 +182,19 @@ const Index = () => {
             transition={{ duration: 0.3 }}
           >
             <SystemSection />
+          </motion.div>
+        );
+
+      case 'report':
+        return (
+          <motion.div
+            key="report"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ReportSection />
           </motion.div>
         );
 
@@ -218,7 +246,9 @@ const Index = () => {
                   { id: 'exposure' as Section, label: 'Exposure' },
                   { id: 'sources' as Section, label: 'Sorgenti' },
                   { id: 'thresholds' as Section, label: 'Soglie AI' },
+                  { id: 'risk' as Section, label: 'Risk Timeline' },
                   { id: 'system' as Section, label: 'Sistema' },
+                  { id: 'report' as Section, label: 'Report AI' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -259,7 +289,9 @@ const Index = () => {
               {activeSection === 'exposure' && 'Exposure Engine'}
               {activeSection === 'sources' && 'Source Pattern Classifier'}
               {activeSection === 'thresholds' && 'Adaptive Threshold AI'}
+              {activeSection === 'risk' && 'Risk Timeline'}
               {activeSection === 'system' && 'System Status'}
+              {activeSection === 'report' && 'Report AI'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeSection === 'map' && "Tracciamento GPS e qualità dell'aria"}
@@ -269,7 +301,9 @@ const Index = () => {
               {activeSection === 'exposure' && 'Dose cumulativa ed esposizione nel tempo'}
               {activeSection === 'sources' && 'Classificazione della fonte del particolato'}
               {activeSection === 'thresholds' && 'Soglie adattive e rischio dinamico'}
+              {activeSection === 'risk' && 'Timeline rischio e PM2.5'}
               {activeSection === 'system' && 'Qualità dati e stabilità pipeline'}
+              {activeSection === 'report' && 'Sintesi tecnica e PDF'}
             </p>
           </div>
 
@@ -283,4 +317,3 @@ const Index = () => {
 };
 
 export default Index;
-
