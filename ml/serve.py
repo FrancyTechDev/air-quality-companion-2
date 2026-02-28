@@ -60,15 +60,15 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
 
 def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     d = df.copy()
-    d["hour"] = d["timestamp"].dt.floor("H")
+    d["bucket"] = d["timestamp"].dt.floor("10min")
     hourly = (
-        d.groupby("hour", as_index=False)[["pm25", "pm10"]].mean().sort_values("hour")
+        d.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("hour")
     )
     for i in range(1, lags + 1):
         hourly[f"pm25_lag_{i}"] = hourly["pm25"].shift(i)
         hourly[f"pm10_lag_{i}"] = hourly["pm10"].shift(i)
-    hourly["hour_of_day"] = hourly["hour"].dt.hour
-    hourly["day_of_week"] = hourly["hour"].dt.dayofweek
+    hourly["hour_of_day"] = hourly["bucket"].dt.hour
+    hourly["day_of_week"] = hourly["bucket"].dt.dayofweek
     hourly = hourly.dropna().reset_index(drop=True)
     return hourly
 
@@ -109,19 +109,19 @@ def model_forecast(df: pd.DataFrame) -> dict:
         for i in range(1, LAGS + 1):
             row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
             row[f"pm10_lag_{i}"] = last.iloc[-i]["pm10"]
-        future_hour = last.iloc[-1]["hour"] + pd.Timedelta(hours=h)
+        future_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=h)
         row["hour_of_day"] = future_hour.hour
         row["day_of_week"] = future_hour.dayofweek
         X = pd.DataFrame([row])
         p = float(model.predict(X)[0])
         preds[h] = round(clamp(p, 5, 300), 1)
 
-        next_hour = last.iloc[-1]["hour"] + pd.Timedelta(hours=1)
+        next_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
         last = pd.concat(
             [
                 last,
                 pd.DataFrame(
-                    [{"hour": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"]}]
+                    [{"bucket": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"]}]
                 ),
             ],
             ignore_index=True,
@@ -437,6 +437,3 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
-
-
-

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain,
   Activity,
@@ -9,8 +9,8 @@ import {
   Clock,
   Zap
 } from 'lucide-react';
-import { SensorData, NeuroHealthRisk } from '@/lib/airQuality';
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { SensorData, calculateNeuroHealthRisk, NeuroHealthRisk } from '@/lib/airQuality';
+import { getAIInsights, AIAnalysis } from '@/lib/aiPrediction';
 import { Button } from '@/components/ui/button';
 
 interface NeuroHealthSectionProps {
@@ -18,8 +18,27 @@ interface NeuroHealthSectionProps {
   history: SensorData[];
 }
 
-const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
-  const { data: aiAnalysis, loading: isAnalyzing, error, refetch } = useAiInsights();
+const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const fetchAIAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const result = await getAIInsights();
+      setAiAnalysis(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (history.length >= 10 && !aiAnalysis) {
+      fetchAIAnalysis();
+    }
+  }, [history.length]);
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -43,6 +62,7 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Risk Level Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           className="glass-panel-purple p-6"
@@ -103,6 +123,7 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
           </div>
         </motion.div>
 
+        {/* AI Insights Card */}
         <motion.div
           className="glass-panel p-6 relative overflow-hidden flex flex-col"
           initial={{ opacity: 0, x: 20 }}
@@ -117,7 +138,7 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
               size="icon"
               variant="ghost"
               className="h-8 w-8 hover-elevate"
-              onClick={refetch}
+              onClick={fetchAIAnalysis}
               disabled={isAnalyzing}
             >
               <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
@@ -135,7 +156,7 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
               <div className="space-y-4">
                 <div className={`p-3 rounded-xl border ${getRiskBg(risk.level)}`}>
                   <p className="text-sm font-medium leading-relaxed">
-                    ESS: {aiAnalysis.ess} · Soglia {aiAnalysis.forecast.threshold} µg/m³
+                    ESS: {aiAnalysis.ess} · Soglia OMS {aiAnalysis.forecast.threshold} µg/m³
                   </p>
                 </div>
 
@@ -172,9 +193,7 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-4">
                 <Brain className="w-10 h-10 text-muted/20 mb-3" />
-                <p className="text-xs text-muted-foreground mb-4">AI non disponibile</p>
-                {error && <p className="text-xs text-air-dangerous">{error}</p>}
-                <Button size="sm" variant="secondary" onClick={refetch} disabled={isAnalyzing}>
+                <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={isAnalyzing}>
                   Avvia Analisi
                 </Button>
               </div>
@@ -187,3 +206,4 @@ const NeuroHealthSection = ({ risk }: NeuroHealthSectionProps) => {
 };
 
 export default NeuroHealthSection;
+
