@@ -1,8 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Brain, 
-  Activity, 
+import {
+  Brain,
+  Activity,
   Sparkles,
   ChevronRight,
   RefreshCw,
@@ -26,7 +26,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
     if (history.length < 5) return;
     setIsAnalyzing(true);
     try {
-      const result = await getAIInsights(history);
+      const result = await getAIInsights();
       setAiAnalysis(result);
     } catch (error) {
       console.error(error);
@@ -88,13 +88,13 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
             <div className={`text-3xl font-bold uppercase ${getRiskColor(risk.level)}`}>
               {risk.level === 'low' ? 'Basso' : risk.level === 'moderate' ? 'Moderato' : risk.level === 'high' ? 'Alto' : 'Critico'}
             </div>
-            
+
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{
-                  background: risk.level === 'low' 
-                    ? 'hsl(var(--air-excellent))' 
+                  background: risk.level === 'low'
+                    ? 'hsl(var(--air-excellent))'
                     : risk.level === 'moderate'
                     ? 'hsl(var(--air-moderate))'
                     : risk.level === 'high'
@@ -135,9 +135,9 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
               <Sparkles className="w-5 h-5 text-accent" />
               <h3 className="font-semibold">AI Clinical Analysis</h3>
             </div>
-            <Button 
-              size="icon" 
-              variant="ghost" 
+            <Button
+              size="icon"
+              variant="ghost"
               className="h-8 w-8 hover-elevate"
               onClick={fetchAIAnalysis}
               disabled={isAnalyzing || history.length < 5}
@@ -155,14 +155,35 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
               </div>
             ) : aiAnalysis ? (
               <div className="space-y-4">
-                <div className={`p-3 rounded-xl border ${getRiskBg(aiAnalysis.riskLevel)}`}>
+                <div className={`p-3 rounded-xl border ${getRiskBg(risk.level)}`}>
                   <p className="text-sm font-medium leading-relaxed">
-                    {aiAnalysis.summary}
+                    ESS: {aiAnalysis.ess} · Soglia OMS {aiAnalysis.forecast.threshold} µg/m³
                   </p>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Environmental Stress Score (ESS)</p>
+                    <p className="text-2xl font-bold">{aiAnalysis.ess}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Sorgente probabile</p>
+                    <p className="text-sm font-semibold">{aiAnalysis.source.label} ({Math.round(aiAnalysis.source.confidence * 100)}%)</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Exposure 1h / 6h</p>
+                    <p className="text-sm font-semibold">{aiAnalysis.exposure.avg_1h.toFixed(1)} / {aiAnalysis.exposure.avg_6h.toFixed(1)} µg/m³</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Forecast PM2.5</p>
+                    <p className="text-sm font-semibold">+1h {aiAnalysis.forecast.h1 ?? '--'} · +2h {aiAnalysis.forecast.h2 ?? '--'} · +3h {aiAnalysis.forecast.h3 ?? '--'}</p>
+                    <p className="text-xs text-muted-foreground">Prob. sopra soglia: {Math.round(aiAnalysis.forecast.prob_over_threshold * 100)}%</p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Raccomandazioni</p>
-                  {aiAnalysis.recommendations.map((rec, i) => (
+                  {aiAnalysis.advisory.map((rec, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <ChevronRight className="w-3 h-3 text-accent shrink-0 mt-0.5" />
                       <span>{rec}</span>
@@ -173,7 +194,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-4">
                 <Brain className="w-10 h-10 text-muted/20 mb-3" />
-                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile con almeno 5 campioni nello storico.</p>
+                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile quando il motore è attivo.</p>
                 <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={history.length < 5}>
                   Avvia Analisi
                 </Button>

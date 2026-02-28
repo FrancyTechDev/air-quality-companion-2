@@ -35,12 +35,16 @@ export interface PredictionResult {
 }
 
 export interface AIAnalysis {
-  riskLevel: 'low' | 'moderate' | 'high' | 'critical';
-  summary: string;
-  recommendations: string[];
-}
-
-export const getAIInsights = async (history: SensorData[]): Promise<AIAnalysis> => {
+  realtime: { pm25: number; pm10: number; ratio: number; trend: number; volatility: number };
+  forecast: { h1: number | null; h2: number | null; h3: number | null; prob_over_threshold: number; threshold: number };
+  exposure: { exposure_1h: number; exposure_6h: number; exposure_24h: number; avg_1h: number; avg_6h: number; avg_24h: number };
+  moving_averages: { ma_5m: number; ma_15m: number; ma_60m: number };
+  adaptive_threshold: { adaptive_threshold: number; method: string };
+  data_quality: { samples: number; last_gap_s: number | null; sample_rate_min: number };
+  ess: number;
+  source: { label: string; confidence: number };
+  advisory: string[];
+}export const getAIInsights = async (history: SensorData[]): Promise<AIAnalysis> => {
   if (history.length === 0) {
     return {
       riskLevel: 'low',
@@ -84,7 +88,8 @@ export const fetchLocalAiPredictions = async (): Promise<PredictionResult | null
   const timeout = setTimeout(() => controller.abort(), 1200);
 
   try {
-    const res = await fetch("http://localhost:8000/predict", {
+    const base = (import.meta as any).env?.VITE_AI_URL || window.location.origin;
+    const res = await fetch(`${base}/predict`, {
       signal: controller.signal,
     });
     if (!res.ok) return null;
@@ -166,4 +171,7 @@ export const generatePredictions = (history: SensorData[]): PredictionResult => 
   
   return { pm25Predictions, pm10Predictions, trend, confidence: Math.round(confidence) };
 };
+
+
+
 

@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 
 // URL del backend (assicurati che corrisponda a quello dell'ESP32 o usa window.location.origin se in prod)
 // Se lavori in locale e il backend è su un'altra porta, metti l'URL intero, es: "http://localhost:3000"
-const SERVER_URL = "https://air-quality-companion.onrender.com"; 
+const SERVER_URL = window.location.origin; 
 
 export const useSensorData = () => {
   const [currentData, setCurrentData] = useState<SensorData>({
@@ -35,7 +35,7 @@ export const useSensorData = () => {
           // Il backend manda 'lon', il frontend usa 'lng'
           lat: Number(item.lat),
           lng: Number(item.lon), 
-          timestamp: new Date(item.timestamp)
+          timestamp: new Date(Number(item.timestamp))
         }));
 
         setHistory(formattedHistory);
@@ -75,7 +75,7 @@ export const useSensorData = () => {
         pm10: Number(payload.pm10),
         lat: Number(payload.lat),
         lng: Number(payload.lon), // Mappatura lon -> lng
-        timestamp: new Date(payload.timestamp)
+        timestamp: new Date(Number(payload.timestamp))
       };
 
       // Aggiorna dato corrente
@@ -151,3 +151,4 @@ export const useGPSTracking = () => {
   
   return { position, error, isTracking, startTracking, stopTracking };
 };
+

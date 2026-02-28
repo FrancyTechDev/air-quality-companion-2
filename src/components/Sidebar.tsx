@@ -8,7 +8,7 @@ import {
   Wind
 } from 'lucide-react';
 
-export type Section = 'map' | 'analytics' | 'forecast' | 'neurohealth';
+export type Section = 'map' | 'analytics' | 'forecast' | 'neurohealth' | 'exposure' | 'sources' | 'thresholds' | 'system';
 
 interface SidebarProps {
   activeSection: Section;
@@ -21,6 +21,10 @@ const navItems = [
   { id: 'analytics' as Section, label: 'Analytics', icon: BarChart3 },
   { id: 'forecast' as Section, label: 'Previsioni PM', icon: Sparkles },
   { id: 'neurohealth' as Section, label: 'NeuroHealth', icon: Brain },
+  { id: 'exposure' as Section, label: 'Exposure', icon: BarChart3 },
+  { id: 'sources' as Section, label: 'Sorgenti', icon: Wind },
+  { id: 'thresholds' as Section, label: 'Soglie AI', icon: Sparkles },
+  { id: 'system' as Section, label: 'Sistema', icon: Radio },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) => {
@@ -99,3 +103,4 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
 };
 
 export default Sidebar;
+

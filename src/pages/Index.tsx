@@ -6,6 +6,10 @@ import MapSection from '@/components/MapSection';
 import AnalyticsSection from '@/components/AnalyticsSection';
 import ForecastSection from '@/components/ForecastSection';
 import NeuroHealthSection from '@/components/NeuroHealthSection';
+import ExposureSection from '@/components/ExposureSection';
+import SourceSection from '@/components/SourceSection';
+import ThresholdSection from '@/components/ThresholdSection';
+import SystemSection from '@/components/SystemSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
@@ -14,11 +18,10 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('map');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { currentData, history, isConnected } = useSensorData();
-  
+
   const airQuality = getAirQualityInfo(currentData.pm25);
   const neuroRisk = calculateNeuroHealthRisk(history);
 
-  // Close mobile menu when section changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [activeSection]);
@@ -35,7 +38,6 @@ const Index = () => {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            {/* Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 title="PM2.5"
@@ -69,7 +71,6 @@ const Index = () => {
               />
             </div>
 
-            {/* Map */}
             <MapSection
               currentData={currentData}
               history={history}
@@ -77,7 +78,7 @@ const Index = () => {
             />
           </motion.div>
         );
-      
+
       case 'analytics':
         return (
           <motion.div
@@ -90,7 +91,7 @@ const Index = () => {
             <AnalyticsSection history={history} currentData={currentData} />
           </motion.div>
         );
-      
+
       case 'forecast':
         return (
           <motion.div
@@ -103,7 +104,7 @@ const Index = () => {
             <ForecastSection history={history} currentData={currentData} />
           </motion.div>
         );
-      
+
       case 'neurohealth':
         return (
           <motion.div
@@ -113,10 +114,62 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <NeuroHealthSection risk={neuroRisk} />
+            <NeuroHealthSection risk={neuroRisk} history={history} />
           </motion.div>
         );
-      
+
+      case 'exposure':
+        return (
+          <motion.div
+            key="exposure"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ExposureSection history={history} />
+          </motion.div>
+        );
+
+      case 'sources':
+        return (
+          <motion.div
+            key="sources"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SourceSection />
+          </motion.div>
+        );
+
+      case 'thresholds':
+        return (
+          <motion.div
+            key="thresholds"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ThresholdSection />
+          </motion.div>
+        );
+
+      case 'system':
+        return (
+          <motion.div
+            key="system"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SystemSection />
+          </motion.div>
+        );
+
       default:
         return null;
     }
@@ -124,7 +177,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar
           activeSection={activeSection}
@@ -133,7 +185,6 @@ const Index = () => {
         />
       </div>
 
-      {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-panel rounded-none border-b border-border">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
@@ -150,7 +201,6 @@ const Index = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {isMobileMenuOpen && (
             <motion.div
@@ -165,6 +215,10 @@ const Index = () => {
                   { id: 'analytics' as Section, label: 'Analytics' },
                   { id: 'forecast' as Section, label: 'Previsioni PM' },
                   { id: 'neurohealth' as Section, label: 'NeuroHealth' },
+                  { id: 'exposure' as Section, label: 'Exposure' },
+                  { id: 'sources' as Section, label: 'Sorgenti' },
+                  { id: 'thresholds' as Section, label: 'Soglie AI' },
+                  { id: 'system' as Section, label: 'Sistema' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -184,10 +238,8 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
-      {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-20 lg:pt-0">
         <div className="p-4 lg:p-8">
-          {/* Page Header */}
           <div className="mb-8">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -204,16 +256,23 @@ const Index = () => {
               {activeSection === 'analytics' && 'Dashboard Analytics'}
               {activeSection === 'forecast' && 'Previsioni AI'}
               {activeSection === 'neurohealth' && 'NeuroHealth Monitor'}
+              {activeSection === 'exposure' && 'Exposure Engine'}
+              {activeSection === 'sources' && 'Source Pattern Classifier'}
+              {activeSection === 'thresholds' && 'Adaptive Threshold AI'}
+              {activeSection === 'system' && 'System Status'}
             </h1>
             <p className="text-muted-foreground mt-1">
-              {activeSection === 'map' && 'Tracciamento GPS e qualità dell\'aria'}
+              {activeSection === 'map' && "Tracciamento GPS e qualità dell'aria"}
               {activeSection === 'analytics' && 'Analisi storica dei dati'}
               {activeSection === 'forecast' && 'Previsioni basate su machine learning'}
               {activeSection === 'neurohealth' && 'Monitoraggio impatto neurologico'}
+              {activeSection === 'exposure' && 'Dose cumulativa ed esposizione nel tempo'}
+              {activeSection === 'sources' && 'Classificazione della fonte del particolato'}
+              {activeSection === 'thresholds' && 'Soglie adattive e rischio dinamico'}
+              {activeSection === 'system' && 'Qualità dati e stabilità pipeline'}
             </p>
           </div>
 
-          {/* Section Content */}
           <AnimatePresence mode="wait">
             {renderSection()}
           </AnimatePresence>

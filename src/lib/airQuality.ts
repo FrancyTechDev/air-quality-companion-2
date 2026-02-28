@@ -118,3 +118,4 @@ export const calculateNeuroHealthRisk = (history: SensorData[]): NeuroHealthRisk
   
   return { level, percentage, cumulativeExposure, timeAboveThreshold };
 };
+

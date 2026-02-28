@@ -14,7 +14,7 @@ import {
 import { Sparkles, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { SensorData } from '@/lib/airQuality';
 import { generatePredictions, fetchLocalAiPredictions, PredictionResult } from '@/lib/aiPrediction';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface ForecastSectionProps {
   history: SensorData[];
@@ -42,19 +42,28 @@ const ForecastSection = ({ history, currentData }: ForecastSectionProps) => {
   }, [aiPredictions, history]);
 
   const chartData = useMemo(() => {
+  const toValidDate = (value: unknown): Date | null => {
+    const d = value instanceof Date ? value : new Date(value as any);
+    return isValid(d) ? d : null;
+  };
+
     // Get last 10 historical points
-    const historicalData = history.slice(-10).map((d, i) => {
-      const date = d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp);
-      return {
-        hour: format(date, 'HH:mm'),
-        pm25: d.pm25,
-        pm10: d.pm10,
-        type: 'historical'
-      };
-    });
+        const historicalData = history
+      .slice(-10)
+      .map((d) => {
+        const date = toValidDate(d.timestamp);
+        if (!date) return null;
+        return {
+          hour: format(date, 'HH:mm'),
+          pm25: d.pm25,
+          pm10: d.pm10,
+          type: 'historical'
+        };
+      })
+      .filter(Boolean);
 
     // Add current point
-    const currentDate = currentData.timestamp instanceof Date ? currentData.timestamp : new Date(currentData.timestamp);
+    const currentDate = toValidDate(currentData.timestamp) || new Date();
     const currentPoint = {
       hour: format(currentDate, 'HH:mm'),
       pm25: currentData.pm25,
@@ -298,3 +307,4 @@ const ForecastSection = ({ history, currentData }: ForecastSectionProps) => {
 };
 
 export default ForecastSection;
+
