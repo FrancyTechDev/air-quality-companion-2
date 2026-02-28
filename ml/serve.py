@@ -33,7 +33,9 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
     conn = psycopg2.connect(DB_URL, sslmode="require")
     try:
         with conn.cursor() as cur:
-            cutoff_ms = int(pd.Timestamp.utcnow().timestamp() * 1000) - hours * 3600 * 1000
+            cutoff_ms = (
+                int(pd.Timestamp.utcnow().timestamp() * 1000) - hours * 3600 * 1000
+            )
             if node:
                 cur.execute(
                     "SELECT pm25, pm10, timestamp FROM sensor_data WHERE node = %s AND timestamp >= %s ORDER BY timestamp ASC",
@@ -59,7 +61,9 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
 def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     d = df.copy()
     d["hour"] = d["timestamp"].dt.floor("H")
-    hourly = d.groupby("hour", as_index=False)[["pm25", "pm10"]].mean().sort_values("hour")
+    hourly = (
+        d.groupby("hour", as_index=False)[["pm25", "pm10"]].mean().sort_values("hour")
+    )
     for i in range(1, lags + 1):
         hourly[f"pm25_lag_{i}"] = hourly["pm25"].shift(i)
         hourly[f"pm10_lag_{i}"] = hourly["pm10"].shift(i)
@@ -86,8 +90,7 @@ def simple_forecast(df: pd.DataFrame) -> dict:
     preds = {}
     for h in HORIZON:
         preds[h] = round(clamp(base + slope_per_hour * h, 5, 300), 1)
-    return preds
-
+    return postprocess_forecast(preds, df)\n
 
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
@@ -113,11 +116,34 @@ def model_forecast(df: pd.DataFrame) -> dict:
         preds[h] = round(clamp(p, 5, 300), 1)
 
         next_hour = last.iloc[-1]["hour"] + pd.Timedelta(hours=1)
-        last = pd.concat([last, pd.DataFrame([{ "hour": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"] }])], ignore_index=True)
+        last = pd.concat(
+            [
+                last,
+                pd.DataFrame(
+                    [{"hour": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"]}]
+                ),
+            ],
+            ignore_index=True,
+        )
 
-    return preds
+    return postprocess_forecast(preds, df)\n
 
 
+def postprocess_forecast(preds: dict, df: pd.DataFrame) -> dict:
+    if df.empty:
+        return postprocess_forecast(preds, df)\n    recent = df.sort_values("timestamp").tail(180)
+    base = float(recent["pm25"].iloc[-1])
+    q10 = float(recent["pm25"].quantile(0.1))
+    q90 = float(recent["pm25"].quantile(0.9))
+    lo = max(5.0, q10, base * 0.7)
+    hi = max(80.0, q90 * 1.3, base * 1.5)
+    cleaned = {}
+    for h, v in preds.items():
+        if v is None:
+            cleaned[h] = None
+        else:
+            cleaned[h] = round(clamp(float(v), lo, hi), 1)
+    return cleaned
 def exposure_metrics(df: pd.DataFrame) -> dict:
     if df.empty or len(df) < 2:
         return {
@@ -211,9 +237,15 @@ def data_quality(df: pd.DataFrame) -> dict:
         return {"samples": samples, "last_gap_s": None, "sample_rate_min": 0}
     gaps = (df["timestamp"].iloc[1:].values - df["timestamp"].iloc[:-1].values) / 1e9
     last_gap = float(gaps[-1])
-    duration_min = (df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]).total_seconds() / 60.0
+    duration_min = (
+        df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]
+    ).total_seconds() / 60.0
     sample_rate = (samples - 1) / duration_min if duration_min > 0 else 0
-    return {"samples": samples, "last_gap_s": round(last_gap, 1), "sample_rate_min": round(sample_rate, 2)}
+    return {
+        "samples": samples,
+        "last_gap_s": round(last_gap, 1),
+        "sample_rate_min": round(sample_rate, 2),
+    }
 
 
 def realtime_metrics(df: pd.DataFrame) -> dict:
@@ -234,7 +266,13 @@ def realtime_metrics(df: pd.DataFrame) -> dict:
 
     volatility = float(recent["pm25"].std()) if len(recent) > 1 else 0
 
-    return {"pm25": pm25, "pm10": pm10, "ratio": ratio, "trend": trend, "volatility": volatility}
+    return {
+        "pm25": pm25,
+        "pm10": pm10,
+        "ratio": ratio,
+        "trend": trend,
+        "volatility": volatility,
+    }
 
 
 def source_classifier(df: pd.DataFrame) -> dict:
@@ -242,9 +280,15 @@ def source_classifier(df: pd.DataFrame) -> dict:
         return {"label": "unknown", "confidence": 0.0}
 
     recent = df.tail(30)
-    ratio = (recent["pm25"].iloc[-1] / recent["pm10"].iloc[-1]) if recent["pm10"].iloc[-1] > 0 else 0
+    ratio = (
+        (recent["pm25"].iloc[-1] / recent["pm10"].iloc[-1])
+        if recent["pm10"].iloc[-1] > 0
+        else 0
+    )
     delta = recent["pm25"].iloc[-1] - recent["pm25"].iloc[0]
-    duration_min = (recent["timestamp"].iloc[-1] - recent["timestamp"].iloc[0]).total_seconds() / 60
+    duration_min = (
+        recent["timestamp"].iloc[-1] - recent["timestamp"].iloc[0]
+    ).total_seconds() / 60
 
     if ratio > 0.8 and delta > 5:
         return {"label": "combustion_dominant", "confidence": 0.75}
@@ -266,7 +310,12 @@ def calc_ess(realtime: dict, exposure: dict, forecast: dict) -> float:
     trend_score = min(abs(realtime["trend"]) / 20.0, 1.0) * 100
     forecast_max = max([v for v in forecast.values() if v is not None] or [0])
     forecast_score = min(forecast_max / 150.0, 1.0) * 100
-    ess = 0.3 * current_score + 0.3 * exposure_score + 0.2 * trend_score + 0.2 * forecast_score
+    ess = (
+        0.3 * current_score
+        + 0.3 * exposure_score
+        + 0.2 * trend_score
+        + 0.2 * forecast_score
+    )
     return round(ess, 1)
 
 
@@ -275,14 +324,18 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
     forecast_max = max([v for v in forecast.values() if v is not None] or [0])
 
     if ess >= 80 or prob > 0.7:
-        advice.append("Limitare attività fisica intensa all’aperto nelle prossime 2 ore.")
+        advice.append(
+            "Limitare attività fisica intensa all’aperto nelle prossime 2 ore."
+        )
         advice.append("Ridurre la durata di esposizione se necessario uscire.")
         advice.append("Monitorare l’andamento nelle prossime 2 ore.")
     elif ess >= 60:
         advice.append("Evitare zone trafficate nelle prossime 2 ore.")
         advice.append("Preferire attività indoor o in aree meno inquinate.")
     elif ess >= 30:
-        advice.append("Condizioni moderate: pianificare attività outdoor in fasce più favorevoli.")
+        advice.append(
+            "Condizioni moderate: pianificare attività outdoor in fasce più favorevoli."
+        )
     else:
         advice.append("Condizioni stabili: nessuna azione specifica necessaria.")
 
@@ -354,8 +407,23 @@ def predict(node: str | None = None):
     if not df.empty and float(df["pm10"].iloc[-1]) > 0:
         ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
 
-    pm25_preds = [{"hour": h, "value": forecast.get(h) or simple_forecast(df).get(h)} for h in HORIZON_PRED]
-    pm10_preds = [{"hour": h, "value": round(((forecast.get(h) or simple_forecast(df).get(h) or 0) / max(ratio, 0.1)), 1)} for h in HORIZON_PRED]
+    pm25_preds = [
+        {"hour": h, "value": forecast.get(h) or simple_forecast(df).get(h)}
+        for h in HORIZON_PRED
+    ]
+    pm10_preds = [
+        {
+            "hour": h,
+            "value": round(
+                (
+                    (forecast.get(h) or simple_forecast(df).get(h) or 0)
+                    / max(ratio, 0.1)
+                ),
+                1,
+            ),
+        }
+        for h in HORIZON_PRED
+    ]
 
     return {
         "pm25Predictions": pm25_preds,
