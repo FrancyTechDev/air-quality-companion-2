@@ -92,6 +92,7 @@ def simple_forecast(df: pd.DataFrame) -> dict:
         preds[h] = round(clamp(base + slope_per_hour * h, 5, 300), 1)
     return postprocess_forecast(preds, df)
 
+
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
         return simple_forecast(df)
@@ -126,12 +127,13 @@ def model_forecast(df: pd.DataFrame) -> dict:
             ignore_index=True,
         )
 
-    return postprocess_forecast(preds, df)\n
+    return postprocess_forecast(preds, df)
 
 
 def postprocess_forecast(preds: dict, df: pd.DataFrame) -> dict:
     if df.empty:
-        return postprocess_forecast(preds, df)\n    recent = df.sort_values("timestamp").tail(180)
+        return postprocess_forecast(preds, df)
+        recent = df.sort_values("timestamp").tail(180)
     base = float(recent["pm25"].iloc[-1])
     q10 = float(recent["pm25"].quantile(0.1))
     q90 = float(recent["pm25"].quantile(0.9))
@@ -144,6 +146,8 @@ def postprocess_forecast(preds: dict, df: pd.DataFrame) -> dict:
         else:
             cleaned[h] = round(clamp(float(v), lo, hi), 1)
     return cleaned
+
+
 def exposure_metrics(df: pd.DataFrame) -> dict:
     if df.empty or len(df) < 2:
         return {
@@ -431,4 +435,3 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
-
