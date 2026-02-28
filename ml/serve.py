@@ -22,6 +22,10 @@ app.add_middleware(
 )
 
 
+def clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
+
+
 def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
     if not DB_URL:
         return pd.DataFrame()
@@ -64,10 +68,6 @@ def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     return hourly
 
 
-def clamp(value: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, value))
-
-
 def simple_forecast(df: pd.DataFrame) -> dict:
     if df.empty:
         return {h: None for h in HORIZON}
@@ -76,13 +76,11 @@ def simple_forecast(df: pd.DataFrame) -> dict:
     if len(recent) < 2:
         return {h: round(clamp(base, 5, 300), 1) for h in HORIZON}
 
-    # Slope in µg/m³ per hour (robust, last 10 points)
     recent = recent.sort_values("timestamp").tail(10)
     x = (recent["timestamp"].astype("int64") / 1e9).values
     y = recent["pm25"].values
     slope_per_sec = (y[-1] - y[0]) / (x[-1] - x[0]) if x[-1] != x[0] else 0
-    slope_per_hour = slope_per_sec * 3600
-    slope_per_hour = clamp(slope_per_hour, -30, 30)
+    slope_per_hour = clamp(slope_per_sec * 3600, -30, 30)
 
     preds = {}
     for h in HORIZON:
@@ -121,12 +119,20 @@ def model_forecast(df: pd.DataFrame) -> dict:
 
 def exposure_metrics(df: pd.DataFrame) -> dict:
     if df.empty or len(df) < 2:
-        return {"exposure_1h": 0, "exposure_6h": 0, "avg_1h": 0, "avg_6h": 0}
+        return {
+            "exposure_1h": 0,
+            "exposure_6h": 0,
+            "exposure_24h": 0,
+            "avg_1h": 0,
+            "avg_6h": 0,
+            "avg_24h": 0,
+        }
 
     df = df.sort_values("timestamp")
     now = df["timestamp"].iloc[-1]
     cutoff_1h = now - pd.Timedelta(hours=1)
     cutoff_6h = now - pd.Timedelta(hours=6)
+    cutoff_24h = now - pd.Timedelta(hours=24)
 
     def integrate(sub: pd.DataFrame) -> tuple[float, float]:
         if len(sub) < 2:
@@ -147,9 +153,66 @@ def exposure_metrics(df: pd.DataFrame) -> dict:
 
     sub1 = df[df["timestamp"] >= cutoff_1h]
     sub6 = df[df["timestamp"] >= cutoff_6h]
+    sub24 = df[df["timestamp"] >= cutoff_24h]
     exp1, avg1 = integrate(sub1)
     exp6, avg6 = integrate(sub6)
-    return {"exposure_1h": exp1, "exposure_6h": exp6, "avg_1h": avg1, "avg_6h": avg6}
+    exp24, avg24 = integrate(sub24)
+    return {
+        "exposure_1h": exp1,
+        "exposure_6h": exp6,
+        "exposure_24h": exp24,
+        "avg_1h": avg1,
+        "avg_6h": avg6,
+        "avg_24h": avg24,
+    }
+
+
+def moving_averages(df: pd.DataFrame) -> dict:
+    if df.empty:
+        return {"ma_5m": 0, "ma_15m": 0, "ma_60m": 0}
+    df = df.sort_values("timestamp")
+    now = df["timestamp"].iloc[-1]
+
+    def avg_window(minutes: int) -> float:
+        cutoff = now - pd.Timedelta(minutes=minutes)
+        sub = df[df["timestamp"] >= cutoff]
+        if sub.empty:
+            return 0.0
+        return float(sub["pm25"].mean())
+
+    return {
+        "ma_5m": avg_window(5),
+        "ma_15m": avg_window(15),
+        "ma_60m": avg_window(60),
+    }
+
+
+def adaptive_threshold(df: pd.DataFrame) -> dict:
+    if df.empty:
+        return {"adaptive_threshold": WHO_THRESHOLD, "method": "fallback"}
+    recent = df.tail(360)
+    q90 = float(recent["pm25"].quantile(0.9))
+    mean = float(recent["pm25"].mean())
+    std = float(recent["pm25"].std()) if len(recent) > 1 else 0
+    adaptive = max(WHO_THRESHOLD, mean + std)
+    return {
+        "adaptive_threshold": round(max(adaptive, q90 * 0.9), 1),
+        "method": "mean+std / q90",
+    }
+
+
+def data_quality(df: pd.DataFrame) -> dict:
+    if df.empty:
+        return {"samples": 0, "last_gap_s": None, "sample_rate_min": 0}
+    df = df.sort_values("timestamp")
+    samples = len(df)
+    if samples < 2:
+        return {"samples": samples, "last_gap_s": None, "sample_rate_min": 0}
+    gaps = (df["timestamp"].iloc[1:].values - df["timestamp"].iloc[:-1].values) / 1e9
+    last_gap = float(gaps[-1])
+    duration_min = (df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]).total_seconds() / 60.0
+    sample_rate = (samples - 1) / duration_min if duration_min > 0 else 0
+    return {"samples": samples, "last_gap_s": round(last_gap, 1), "sample_rate_min": round(sample_rate, 2)}
 
 
 def realtime_metrics(df: pd.DataFrame) -> dict:
@@ -177,7 +240,7 @@ def source_classifier(df: pd.DataFrame) -> dict:
     if df.empty:
         return {"label": "unknown", "confidence": 0.0}
 
-    recent = df.sort_values("timestamp").tail(30)
+    recent = df.tail(30)
     ratio = (recent["pm25"].iloc[-1] / recent["pm10"].iloc[-1]) if recent["pm10"].iloc[-1] > 0 else 0
     delta = recent["pm25"].iloc[-1] - recent["pm25"].iloc[0]
     duration_min = (recent["timestamp"].iloc[-1] - recent["timestamp"].iloc[0]).total_seconds() / 60
@@ -234,11 +297,15 @@ def ai_insights(node: str | None = None, hours: int = 24):
     realtime = realtime_metrics(df)
     exposure = exposure_metrics(df)
     forecast = model_forecast(df)
+    ma = moving_averages(df)
+    adaptive = adaptive_threshold(df)
+    quality = data_quality(df)
 
     prob = 0.0
     forecast_max = max([v for v in forecast.values() if v is not None] or [0])
-    if forecast_max > WHO_THRESHOLD:
-        prob = min(1.0, (forecast_max - WHO_THRESHOLD) / WHO_THRESHOLD)
+    threshold = adaptive["adaptive_threshold"]
+    if forecast_max > threshold:
+        prob = min(1.0, (forecast_max - threshold) / max(threshold, 1))
 
     ess = calc_ess(realtime, exposure, forecast)
     source = source_classifier(df)
@@ -250,9 +317,12 @@ def ai_insights(node: str | None = None, hours: int = 24):
             "h2": forecast.get(2),
             "h3": forecast.get(3),
             "prob_over_threshold": round(prob, 2),
-            "threshold": WHO_THRESHOLD,
+            "threshold": threshold,
         },
         "exposure": exposure,
+        "moving_averages": ma,
+        "adaptive_threshold": adaptive,
+        "data_quality": quality,
         "ess": ess,
         "source": source,
         "advisory": advisory(ess, forecast, prob),
@@ -292,5 +362,3 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
-
-
