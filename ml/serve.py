@@ -62,7 +62,7 @@ def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     d = df.copy()
     d["bucket"] = d["timestamp"].dt.floor("10min")
     hourly = (
-        d.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("hour")
+        d.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("bucket")
     )
     for i in range(1, lags + 1):
         hourly[f"pm25_lag_{i}"] = hourly["pm25"].shift(i)
