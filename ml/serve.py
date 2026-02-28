@@ -62,7 +62,9 @@ def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     d = df.copy()
     d["bucket"] = d["timestamp"].dt.floor("10min")
     hourly = (
-        d.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("bucket")
+        d.groupby("bucket", as_index=False)[["pm25", "pm10"]]
+        .mean()
+        .sort_values("bucket")
     )
     for i in range(1, lags + 1):
         hourly[f"pm25_lag_{i}"] = hourly["pm25"].shift(i)
@@ -104,7 +106,7 @@ def model_forecast(df: pd.DataFrame) -> dict:
 
     preds = {}
     last = hourly.copy()
-    for h in horizon:
+    for h in [1, 2, 3, 4, 5]:
         row = {}
         for i in range(1, LAGS + 1):
             row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
