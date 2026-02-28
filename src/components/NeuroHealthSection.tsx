@@ -193,7 +193,8 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-4">
                 <Brain className="w-10 h-10 text-muted/20 mb-3" />
-                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile quando il motore è attivo.</p>\n                <p className="text-xs text-muted-foreground">Se non risponde, verifica il servizio AI su Render.</p>
+                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile quando il motore è attivo.</p>
+                <p className="text-xs text-muted-foreground">Se non risponde, verifica il servizio AI su Render.</p>
                 <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={isAnalyzing}>
                   Avvia Analisi
                 </Button>
