@@ -90,7 +90,7 @@ def simple_forecast(df: pd.DataFrame) -> dict:
     preds = {}
     for h in HORIZON:
         preds[h] = round(clamp(base + slope_per_hour * h, 5, 300), 1)
-    return postprocess_forecast(preds, df)\n
+    return postprocess_forecast(preds, df)
 
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
