@@ -9,7 +9,7 @@ import psycopg2
 DB_URL = os.getenv("DATABASE_URL")
 MODEL_PATH = Path("./models/air_quality_model.joblib")
 LAGS = 6
-HORIZON = [1, 2, 3]
+HORIZON = [1, 2, 3]\nHORIZON_PRED = [1, 2, 3, 4, 5]
 WHO_THRESHOLD = 15.0
 
 app = FastAPI()
@@ -353,8 +353,8 @@ def predict(node: str | None = None):
     if not df.empty and float(df["pm10"].iloc[-1]) > 0:
         ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
 
-    pm25_preds = [{"hour": h, "value": forecast.get(h)} for h in [1, 2, 3, 4, 5]]
-    pm10_preds = [{"hour": h, "value": round((forecast.get(h) or 0) / max(ratio, 0.1), 1)} for h in [1, 2, 3, 4, 5]]
+    pm25_preds = [{"hour": h, "value": forecast.get(h) or simple_forecast(df).get(h)} for h in HORIZON_PRED]
+    pm10_preds = [{"hour": h, "value": round(((forecast.get(h) or simple_forecast(df).get(h) or 0) / max(ratio, 0.1)), 1)} for h in HORIZON_PRED]
 
     return {
         "pm25Predictions": pm25_preds,
@@ -362,3 +362,4 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
+

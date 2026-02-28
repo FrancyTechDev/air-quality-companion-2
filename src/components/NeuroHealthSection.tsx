@@ -23,7 +23,6 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const fetchAIAnalysis = async () => {
-    if (history.length < 5) return;
     setIsAnalyzing(true);
     try {
       const result = await getAIInsights();
@@ -140,7 +139,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
               variant="ghost"
               className="h-8 w-8 hover-elevate"
               onClick={fetchAIAnalysis}
-              disabled={isAnalyzing || history.length < 5}
+              disabled={isAnalyzing}
             >
               <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
             </Button>
@@ -194,8 +193,8 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-4">
                 <Brain className="w-10 h-10 text-muted/20 mb-3" />
-                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile quando il motore è attivo.</p>
-                <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={history.length < 5}>
+                <p className="text-xs text-muted-foreground mb-4">Analisi AI disponibile quando il motore è attivo.</p>\n                <p className="text-xs text-muted-foreground">Se non risponde, verifica il servizio AI su Render.</p>
+                <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={isAnalyzing}>
                   Avvia Analisi
                 </Button>
               </div>
@@ -208,3 +207,4 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
 };
 
 export default NeuroHealthSection;
+
