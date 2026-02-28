@@ -71,13 +71,13 @@ def clamp(value: float, lo: float, hi: float) -> float:
 def simple_forecast(df: pd.DataFrame) -> dict:
     if df.empty:
         return {h: None for h in HORIZON}
-    recent = df.tail(30)
+    recent = df.sort_values("timestamp").tail(30)
     base = float(recent["pm25"].iloc[-1])
     if len(recent) < 2:
-        return {h: round(clamp(base, 0, 300), 1) for h in HORIZON}
+        return {h: round(clamp(base, 5, 300), 1) for h in HORIZON}
 
     # Slope in µg/m³ per hour (robust, last 10 points)
-    recent = recent.tail(10)
+    recent = recent.sort_values("timestamp").tail(10)
     x = (recent["timestamp"].astype("int64") / 1e9).values
     y = recent["pm25"].values
     slope_per_sec = (y[-1] - y[0]) / (x[-1] - x[0]) if x[-1] != x[0] else 0
@@ -86,7 +86,7 @@ def simple_forecast(df: pd.DataFrame) -> dict:
 
     preds = {}
     for h in HORIZON:
-        preds[h] = round(clamp(base + slope_per_hour * h, 0, 300), 1)
+        preds[h] = round(clamp(base + slope_per_hour * h, 5, 300), 1)
     return preds
 
 
@@ -111,7 +111,7 @@ def model_forecast(df: pd.DataFrame) -> dict:
         row["day_of_week"] = future_hour.dayofweek
         X = pd.DataFrame([row])
         p = float(model.predict(X)[0])
-        preds[h] = round(clamp(p, 0, 300), 1)
+        preds[h] = round(clamp(p, 5, 300), 1)
 
         next_hour = last.iloc[-1]["hour"] + pd.Timedelta(hours=1)
         last = pd.concat([last, pd.DataFrame([{ "hour": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"] }])], ignore_index=True)
@@ -177,7 +177,7 @@ def source_classifier(df: pd.DataFrame) -> dict:
     if df.empty:
         return {"label": "unknown", "confidence": 0.0}
 
-    recent = df.tail(30)
+    recent = df.sort_values("timestamp").tail(30)
     ratio = (recent["pm25"].iloc[-1] / recent["pm10"].iloc[-1]) if recent["pm10"].iloc[-1] > 0 else 0
     delta = recent["pm25"].iloc[-1] - recent["pm25"].iloc[0]
     duration_min = (recent["timestamp"].iloc[-1] - recent["timestamp"].iloc[0]).total_seconds() / 60
@@ -292,4 +292,5 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
+
 
