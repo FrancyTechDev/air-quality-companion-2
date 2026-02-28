@@ -132,8 +132,10 @@ def model_forecast(df: pd.DataFrame) -> dict:
 
 def postprocess_forecast(preds: dict, df: pd.DataFrame) -> dict:
     if df.empty:
-        return postprocess_forecast(preds, df)
-        recent = df.sort_values("timestamp").tail(180)
+        return preds
+    recent = df.sort_values("timestamp").tail(180)
+    if recent.empty:
+        return preds
     base = float(recent["pm25"].iloc[-1])
     q10 = float(recent["pm25"].quantile(0.1))
     q90 = float(recent["pm25"].quantile(0.9))
@@ -435,3 +437,4 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
+
