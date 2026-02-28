@@ -263,5 +263,3 @@ const AnalyticsSection = ({ history, currentData }: AnalyticsSectionProps) => {
 };
 
 export default AnalyticsSection;
-
-
