@@ -73,13 +73,13 @@ def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     return hourly
 
 
-def simple_forecast(df: pd.DataFrame) -> dict:
+def simple_forecast(df: pd.DataFrame, horizon: list[int]) -> dict:
     if df.empty:
-        return {h: None for h in HORIZON}
+        return {h: None for h in horizon}
     recent = df.sort_values("timestamp").tail(30)
     base = float(recent["pm25"].iloc[-1])
     if len(recent) < 2:
-        return {h: round(clamp(base, 5, 300), 1) for h in HORIZON}
+        return {h: round(clamp(base, 5, 300), 1) for h in horizon}
 
     recent = recent.sort_values("timestamp").tail(10)
     x = (recent["timestamp"].astype("int64") / 1e9).values
@@ -88,23 +88,23 @@ def simple_forecast(df: pd.DataFrame) -> dict:
     slope_per_hour = clamp(slope_per_sec * 3600, -30, 30)
 
     preds = {}
-    for h in HORIZON:
+    for h in horizon:
         preds[h] = round(clamp(base + slope_per_hour * h, 5, 300), 1)
     return postprocess_forecast(preds, df)
 
 
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
-        return simple_forecast(df)
+        return simple_forecast(df, HORIZON)
     hourly = to_features(df, LAGS)
     if hourly.empty:
-        return simple_forecast(df)
+        return simple_forecast(df, HORIZON)
     bundle = joblib.load(MODEL_PATH)
     model = bundle["model_pm25"]
 
     preds = {}
     last = hourly.copy()
-    for h in HORIZON:
+    for h in horizon:
         row = {}
         for i in range(1, LAGS + 1):
             row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
@@ -437,5 +437,6 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
+
 
 
