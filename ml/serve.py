@@ -217,7 +217,7 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
     return advice
 
 
-@app.get("/ai/insights")\ndef ai_insights(node: str | None = None, hours: int = 24):
+@app.get("/ai/insights")\n\ndef ai_insights(node: str | None = None, hours: int = 24):
     df = load_recent_data(hours=hours, node=node)
     realtime = realtime_metrics(df)
     exposure = exposure_metrics(df)
@@ -282,3 +282,4 @@ def ai_debug():
     finally:
         conn.close()
     return {"db": "ok", "count": int(count), "latest_timestamp": latest}
+
