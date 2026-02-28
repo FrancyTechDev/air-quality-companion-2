@@ -217,9 +217,8 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
     return advice
 
 
-@app.get("/ai/insights")
-def ai_insights(node: str | None = None):
-    df = load_recent_data(hours=6, node=node)
+@app.get("/ai/insights")\ndef ai_insights(node: str | None = None, hours: int = 24):
+    df = load_recent_data(hours=hours, node=node)
     realtime = realtime_metrics(df)
     exposure = exposure_metrics(df)
     forecast = model_forecast(df)
@@ -249,7 +248,7 @@ def ai_insights(node: str | None = None):
 
 @app.get("/predict")
 def predict(node: str | None = None):
-    df = load_recent_data(hours=6, node=node)
+    df = load_recent_data(hours=hours, node=node)
     forecast = model_forecast(df)
     if df.empty:
         pm10_base = 0
@@ -268,3 +267,18 @@ def predict(node: str | None = None):
         "trend": "stable",
         "confidence": 80,
     }
+
+@app.get("/ai/debug")
+def ai_debug():
+    if not DB_URL:
+        return {"db": "missing", "count": 0, "latest_timestamp": None}
+    conn = psycopg2.connect(DB_URL, sslmode="require")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM sensor_data")
+            count = cur.fetchone()[0]
+            cur.execute("SELECT MAX(timestamp) FROM sensor_data")
+            latest = cur.fetchone()[0]
+    finally:
+        conn.close()
+    return {"db": "ok", "count": int(count), "latest_timestamp": latest}
