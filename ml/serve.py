@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import math
 from pathlib import Path
 import pandas as pd
 import joblib
@@ -217,7 +216,8 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
     return advice
 
 
-@app.get("/ai/insights")`r`n`r`ndef ai_insights(node: str | None = None, hours: int = 24):
+@app.get("/ai/insights")
+def ai_insights(node: str | None = None, hours: int = 24):
     df = load_recent_data(hours=hours, node=node)
     realtime = realtime_metrics(df)
     exposure = exposure_metrics(df)
@@ -246,27 +246,6 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
         "advisory": advisory(ess, forecast, prob),
     }
 
-@app.get("/predict")
-def predict(node: str | None = None):
-    df = load_recent_data(hours=hours, node=node)
-    forecast = model_forecast(df)
-    if df.empty:
-        pm10_base = 0
-    else:
-        pm10_base = float(df["pm10"].iloc[-1])
-    ratio = 1.0
-    if not df.empty and float(df["pm10"].iloc[-1]) > 0:
-        ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
-
-    pm25_preds = [{"hour": h, "value": forecast.get(h)} for h in [1, 2, 3, 4, 5]]
-    pm10_preds = [{"hour": h, "value": round((forecast.get(h) or 0) / max(ratio, 0.1), 1)} for h in [1, 2, 3, 4, 5]]
-
-    return {
-        "pm25Predictions": pm25_preds,
-        "pm10Predictions": pm10_preds,
-        "trend": "stable",
-        "confidence": 80,
-    }
 
 @app.get("/ai/debug")
 def ai_debug():
@@ -284,3 +263,20 @@ def ai_debug():
     return {"db": "ok", "count": int(count), "latest_timestamp": latest}
 
 
+@app.get("/predict")
+def predict(node: str | None = None):
+    df = load_recent_data(hours=6, node=node)
+    forecast = model_forecast(df)
+    ratio = 1.0
+    if not df.empty and float(df["pm10"].iloc[-1]) > 0:
+        ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
+
+    pm25_preds = [{"hour": h, "value": forecast.get(h)} for h in [1, 2, 3, 4, 5]]
+    pm10_preds = [{"hour": h, "value": round((forecast.get(h) or 0) / max(ratio, 0.1), 1)} for h in [1, 2, 3, 4, 5]]
+
+    return {
+        "pm25Predictions": pm25_preds,
+        "pm10Predictions": pm10_preds,
+        "trend": "stable",
+        "confidence": 80,
+    }
