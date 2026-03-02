@@ -101,6 +101,8 @@ def model_forecast(df: pd.DataFrame) -> dict:
     hourly = to_features(df, LAGS)
     if hourly.empty:
         return simple_forecast(df, HORIZON)
+    if len(hourly) < LAGS:
+        return simple_forecast(df, HORIZON)
     bundle = joblib.load(MODEL_PATH)
     model = bundle["model_pm25"]
 

@@ -91,7 +91,7 @@ const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) 
         </div>
       </div>
 
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4 px-2">
           Navigazione
         </p>
