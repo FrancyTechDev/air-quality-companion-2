@@ -17,16 +17,24 @@ const ReportSection = () => {
     const pages = Array.from(reportRef.current.querySelectorAll('[data-report-page]')) as HTMLDivElement[];
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
     const width = pdf.internal.pageSize.getWidth();
+    const stamp = new Date();
+    const stampText = stamp.toISOString().replace('T', ' ').slice(0, 19);
 
-    for (let i = 0; i < pages.length; i++) {
-      const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: '#0b0f14' });
+    const exportPages = pages.length > 0 ? pages : [reportRef.current];
+
+    for (let i = 0; i < exportPages.length; i++) {
+      const canvas = await html2canvas(exportPages[i], { scale: 2, backgroundColor: '#0b0f14' });
       const imgData = canvas.toDataURL('image/png');
       const height = (canvas.height * width) / canvas.width;
       if (i > 0) pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+      pdf.setTextColor(180);
+      pdf.setFontSize(9);
+      pdf.text(`AirWatch Report • ${stampText}`, 12, height - 10);
     }
 
-    pdf.save('report-ai-airwatch.pdf');
+    const filename = `report-ai-airwatch-${stamp.toISOString().replace(/[:.]/g, '-')}.pdf`;
+    pdf.save(filename);
   };
 
   const lastSamples = history.slice(-20).reverse();
