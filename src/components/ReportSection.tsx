@@ -48,6 +48,16 @@ const ReportSection = () => {
     : 'Stabile';
   const clinicalSummary = `Livello PM2.5 medio ${avgPm25.toFixed(1)} µg/m³, picco ${maxPm25.toFixed(1)} µg/m³. Trend ${trendLabel}.`;
 
+  const Page = ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-report-page className="glass-panel p-8 space-y-6" style={{ minHeight: 1120 }}>
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <span className="text-xs text-muted-foreground">AirWatch Clinical Report</span>
+      </div>
+      {children}
+    </div>
+  );
+
   return (
     <motion.div
       className="space-y-6"
@@ -70,153 +80,189 @@ const ReportSection = () => {
       </div>
 
       <div ref={reportRef} className="space-y-6">
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">AirWatch – Report Clinico Completo</h3>
-            <span className="text-xs text-muted-foreground">Generato automaticamente</span>
-          </div>
-
+        <Page title="Pagina 1 — Executive Summary">
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">Patient/Node ID</p>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Node ID</p>
               <p className="text-lg font-semibold">node-01</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">Timestamp ultimo campione</p>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Ultimo campione</p>
               <p className="text-sm font-semibold">{lastSample?.timestamp?.toISOString?.() ?? '--'}</p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">PM2.5 attuale</p>
               <p className="text-2xl font-bold">{currentData.pm25.toFixed(1)} µg/m³</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">PM10 attuale</p>
               <p className="text-2xl font-bold">{currentData.pm10.toFixed(1)} µg/m³</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">ESS</p>
               <p className="text-2xl font-bold">{data?.ess ?? '--'}</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Prob. soglia</p>
               <p className="text-2xl font-bold">{Math.round((data?.forecast.prob_over_threshold ?? 0) * 100)}%</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Soglia adattiva</p>
               <p className="text-2xl font-bold">{data?.adaptive_threshold.adaptive_threshold ?? '--'} µg/m³</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">Sorgente</p>
-              <p className="text-lg font-semibold">{data?.source.label ?? '--'} ({Math.round((data?.source.confidence ?? 0) * 100)}%)</p>
-            </div>
           </div>
-
           <div className="p-4 rounded-xl border border-border bg-card/60">
             <p className="text-sm font-semibold mb-2">Impression Clinica</p>
             <p className="text-sm text-muted-foreground">{clinicalSummary}</p>
           </div>
-        </div>
+        </Page>
 
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Exposure Engine</h4>
+        <Page title="Pagina 2 — Exposure Engine">
           <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Exposure 1h</p>
               <p className="text-lg font-semibold">{data?.exposure.exposure_1h.toFixed(2) ?? '--'}</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Exposure 6h</p>
               <p className="text-lg font-semibold">{data?.exposure.exposure_6h.toFixed(2) ?? '--'}</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Exposure 24h</p>
               <p className="text-lg font-semibold">{data?.exposure.exposure_24h.toFixed(2) ?? '--'}</p>
             </div>
           </div>
-
-          <h4 className="text-sm font-semibold mt-4">Forecast</h4>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">+1h</p>
-              <p className="text-lg font-semibold">{data?.forecast.h1 ?? '--'} µg/m³</p>
-            </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">+2h</p>
-              <p className="text-lg font-semibold">{data?.forecast.h2 ?? '--'} µg/m³</p>
-            </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">+3h</p>
-              <p className="text-lg font-semibold">{data?.forecast.h3 ?? '--'} µg/m³</p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">Media PM2.5 (storico)</p>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Media PM2.5</p>
               <p className="text-lg font-semibold">{avgPm25.toFixed(1)} µg/m³</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Picco PM2.5</p>
               <p className="text-lg font-semibold">{maxPm25.toFixed(1)} µg/m³</p>
             </div>
           </div>
-        </div>
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold">Note Cliniche</p>
+            <p className="text-sm text-muted-foreground">
+              L’esposizione cumulativa integra i livelli PM2.5 sulle ultime finestre temporali, utile per valutare il rischio acuto.
+            </p>
+          </div>
+        </Page>
 
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">NeuroHealth – Sezione Clinica</h4>
+        <Page title="Pagina 3 — Forecast Clinico">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">+1h</p>
+              <p className="text-lg font-semibold">{data?.forecast.h1 ?? '--'} µg/m³</p>
+            </div>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">+2h</p>
+              <p className="text-lg font-semibold">{data?.forecast.h2 ?? '--'} µg/m³</p>
+            </div>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">+3h</p>
+              <p className="text-lg font-semibold">{data?.forecast.h3 ?? '--'} µg/m³</p>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
-              <p className="text-xs text-muted-foreground">Rischio Neuro (finestra recente)</p>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Trend</p>
+              <p className="text-lg font-semibold">{trendLabel}</p>
+            </div>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Prob. sopra soglia</p>
+              <p className="text-lg font-semibold">{Math.round((data?.forecast.prob_over_threshold ?? 0) * 100)}%</p>
+            </div>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold">Interpretazione</p>
+            <p className="text-sm text-muted-foreground">
+              Le previsioni multi-step indicano il rischio di superamento soglia OMS nelle prossime ore.
+            </p>
+          </div>
+        </Page>
+
+        <Page title="Pagina 4 — NeuroHealth">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Rischio Neuro</p>
               <p className="text-lg font-semibold">{data?.ess ?? '--'} / 100</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Trend neurologico</p>
               <p className="text-lg font-semibold">{trendLabel}</p>
             </div>
           </div>
-
           <div className="p-4 rounded-xl border border-border bg-card/60">
-            <p className="text-sm font-semibold mb-2">Interpretazione</p>
+            <p className="text-sm font-semibold">Interpretazione</p>
             <p className="text-sm text-muted-foreground">
-              L’algoritmo considera l’esposizione recente e la variabilità dei picchi. Un trend in aumento indica
-              rischio acuto potenziale nelle prossime ore.
+              L’algoritmo utilizza l’esposizione recente e la volatilità per stimare il rischio acuto neurologico.
             </p>
           </div>
-        </div>
+        </Page>
 
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Raccomandazioni Cliniche</h4>
+        <Page title="Pagina 5 — Raccomandazioni Cliniche">
           <ul className="space-y-2">
             {(data?.advisory ?? []).map((a, i) => (
               <li key={i} className="text-sm">• {a}</li>
             ))}
           </ul>
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold">Note operative</p>
+            <p className="text-sm text-muted-foreground">
+              Le raccomandazioni sono adattive e aggiornate in base ai trend previsionali e alla soglia dinamica.
+            </p>
+          </div>
+        </Page>
 
-          <h4 className="text-sm font-semibold mt-4">Qualità Dati</h4>
+        <Page title="Pagina 6 — Qualità Dati">
           <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Samples</p>
               <p className="text-lg font-semibold">{data?.data_quality.samples ?? '--'}</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Last gap</p>
               <p className="text-lg font-semibold">{data?.data_quality.last_gap_s ?? '--'}s</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">Sample rate</p>
               <p className="text-lg font-semibold">{data?.data_quality.sample_rate_min ?? '--'}/min</p>
             </div>
           </div>
-        </div>
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold">Stabilità</p>
+            <p className="text-sm text-muted-foreground">
+              I gap superiori a 120s possono ridurre l’accuratezza dei modelli previsionali.
+            </p>
+          </div>
+        </Page>
 
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Raw Data Snapshot</h4>
+        <Page title="Pagina 7 — Source Pattern">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Sorgente probabile</p>
+              <p className="text-lg font-semibold">{data?.source.label ?? '--'}</p>
+            </div>
+            <div className="p-4 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Confidenza</p>
+              <p className="text-lg font-semibold">{Math.round((data?.source.confidence ?? 0) * 100)}%</p>
+            </div>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold">Interpretazione</p>
+            <p className="text-sm text-muted-foreground">
+              La classificazione si basa su rapporto PM2.5/PM10, velocità variazione e durata eventi.
+            </p>
+          </div>
+        </Page>
+
+        <Page title="Pagina 8 — Raw Data Snapshot">
           <div className="space-y-2">
             {lastSamples.map((s, i) => (
               <div key={i} className="text-xs text-muted-foreground">
@@ -224,27 +270,26 @@ const ReportSection = () => {
               </div>
             ))}
           </div>
-        </div>
+        </Page>
 
-        <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Metodologia & Limiti</h4>
+        <Page title="Pagina 9 — Metodologia & Limiti">
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li>Le previsioni sono basate su modelli storici e trend recenti.</li>
             <li>La soglia OMS è usata come riferimento clinico.</li>
             <li>Le raccomandazioni non sostituiscono parere medico.</li>
+            <li>La precisione dipende dalla qualità dei dati e dall’aderenza a pattern storici.</li>
           </ul>
-
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">PM10 medio</p>
               <p className="text-lg font-semibold">{avgPm10.toFixed(1)} µg/m³</p>
             </div>
-            <div className="p-3 rounded-xl border border-border bg-card/60">
+            <div className="p-4 rounded-xl border border-border bg-card/60">
               <p className="text-xs text-muted-foreground">PM10 picco</p>
               <p className="text-lg font-semibold">{maxPm10.toFixed(1)} µg/m³</p>
             </div>
           </div>
-        </div>
+        </Page>
       </div>
     </motion.div>
   );
