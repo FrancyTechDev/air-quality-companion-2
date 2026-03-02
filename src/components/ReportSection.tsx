@@ -38,6 +38,15 @@ const ReportSection = () => {
   };
 
   const lastSamples = history.slice(-20).reverse();
+  const lastSample = history[history.length - 1];
+  const avgPm25 = history.length > 0 ? history.reduce((acc, d) => acc + d.pm25, 0) / history.length : 0;
+  const maxPm25 = history.length > 0 ? Math.max(...history.map(d => d.pm25)) : 0;
+  const avgPm10 = history.length > 0 ? history.reduce((acc, d) => acc + d.pm10, 0) / history.length : 0;
+  const maxPm10 = history.length > 0 ? Math.max(...history.map(d => d.pm10)) : 0;
+  const trendLabel = data?.realtime.trend
+    ? data.realtime.trend > 0.2 ? 'In aumento' : data.realtime.trend < -0.2 ? 'In diminuzione' : 'Stabile'
+    : 'Stabile';
+  const clinicalSummary = `Livello PM2.5 medio ${avgPm25.toFixed(1)} µg/m³, picco ${maxPm25.toFixed(1)} µg/m³. Trend ${trendLabel}.`;
 
   return (
     <motion.div
@@ -63,8 +72,19 @@ const ReportSection = () => {
       <div ref={reportRef} className="space-y-6">
         <div data-report-page className="glass-panel p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">AirWatch – Report Completo</h3>
+            <h3 className="text-lg font-semibold">AirWatch – Report Clinico Completo</h3>
             <span className="text-xs text-muted-foreground">Generato automaticamente</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Patient/Node ID</p>
+              <p className="text-lg font-semibold">node-01</p>
+            </div>
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Timestamp ultimo campione</p>
+              <p className="text-sm font-semibold">{lastSample?.timestamp?.toISOString?.() ?? '--'}</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -95,6 +115,11 @@ const ReportSection = () => {
               <p className="text-xs text-muted-foreground">Sorgente</p>
               <p className="text-lg font-semibold">{data?.source.label ?? '--'} ({Math.round((data?.source.confidence ?? 0) * 100)}%)</p>
             </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold mb-2">Impression Clinica</p>
+            <p className="text-sm text-muted-foreground">{clinicalSummary}</p>
           </div>
         </div>
 
@@ -130,10 +155,43 @@ const ReportSection = () => {
               <p className="text-lg font-semibold">{data?.forecast.h3 ?? '--'} µg/m³</p>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Media PM2.5 (storico)</p>
+              <p className="text-lg font-semibold">{avgPm25.toFixed(1)} µg/m³</p>
+            </div>
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Picco PM2.5</p>
+              <p className="text-lg font-semibold">{maxPm25.toFixed(1)} µg/m³</p>
+            </div>
+          </div>
         </div>
 
         <div data-report-page className="glass-panel p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Raccomandazioni</h4>
+          <h4 className="text-sm font-semibold">NeuroHealth – Sezione Clinica</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Rischio Neuro (finestra recente)</p>
+              <p className="text-lg font-semibold">{data?.ess ?? '--'} / 100</p>
+            </div>
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">Trend neurologico</p>
+              <p className="text-lg font-semibold">{trendLabel}</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-border bg-card/60">
+            <p className="text-sm font-semibold mb-2">Interpretazione</p>
+            <p className="text-sm text-muted-foreground">
+              L’algoritmo considera l’esposizione recente e la variabilità dei picchi. Un trend in aumento indica
+              rischio acuto potenziale nelle prossime ore.
+            </p>
+          </div>
+        </div>
+
+        <div data-report-page className="glass-panel p-6 space-y-4">
+          <h4 className="text-sm font-semibold">Raccomandazioni Cliniche</h4>
           <ul className="space-y-2">
             {(data?.advisory ?? []).map((a, i) => (
               <li key={i} className="text-sm">• {a}</li>
@@ -165,6 +223,26 @@ const ReportSection = () => {
                 {s.timestamp.toISOString()} · PM2.5 {s.pm25.toFixed(1)} · PM10 {s.pm10.toFixed(1)}
               </div>
             ))}
+          </div>
+        </div>
+
+        <div data-report-page className="glass-panel p-6 space-y-4">
+          <h4 className="text-sm font-semibold">Metodologia & Limiti</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>Le previsioni sono basate su modelli storici e trend recenti.</li>
+            <li>La soglia OMS è usata come riferimento clinico.</li>
+            <li>Le raccomandazioni non sostituiscono parere medico.</li>
+          </ul>
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">PM10 medio</p>
+              <p className="text-lg font-semibold">{avgPm10.toFixed(1)} µg/m³</p>
+            </div>
+            <div className="p-3 rounded-xl border border-border bg-card/60">
+              <p className="text-xs text-muted-foreground">PM10 picco</p>
+              <p className="text-lg font-semibold">{maxPm10.toFixed(1)} µg/m³</p>
+            </div>
           </div>
         </div>
       </div>
