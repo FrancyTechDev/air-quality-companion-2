@@ -4,8 +4,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from sklearn.metrics import r2_score
 import joblib
 import psycopg2
@@ -59,12 +58,32 @@ def build_features(binned: pd.DataFrame, lags: int = 6) -> tuple[pd.DataFrame, p
         df[f"pm25_lag_{i}"] = df["pm25"].shift(i)
         df[f"pm10_lag_{i}"] = df["pm10"].shift(i)
 
+    df["pm25_roll_3"] = df["pm25"].shift(1).rolling(3).mean()
+    df["pm25_roll_6"] = df["pm25"].shift(1).rolling(6).mean()
+    df["pm25_std_6"] = df["pm25"].shift(1).rolling(6).std()
+    df["pm10_roll_3"] = df["pm10"].shift(1).rolling(3).mean()
+    df["pm10_roll_6"] = df["pm10"].shift(1).rolling(6).mean()
+    df["pm10_std_6"] = df["pm10"].shift(1).rolling(6).std()
+    df["pm25_diff_1"] = df["pm25"].diff()
+    df["pm10_diff_1"] = df["pm10"].diff()
+
     df["hour_of_day"] = df["bucket"].dt.hour
     df["day_of_week"] = df["bucket"].dt.dayofweek
 
     df = df.dropna().reset_index(drop=True)
     feature_cols = [c for c in df.columns if c.startswith("pm25_lag_") or c.startswith("pm10_lag_")]
-    feature_cols += ["hour_of_day", "day_of_week"]
+    feature_cols += [
+        "pm25_roll_3",
+        "pm25_roll_6",
+        "pm25_std_6",
+        "pm10_roll_3",
+        "pm10_roll_6",
+        "pm10_std_6",
+        "pm25_diff_1",
+        "pm10_diff_1",
+        "hour_of_day",
+        "day_of_week",
+    ]
 
     X = df[feature_cols]
     y_pm25 = df["pm25"]
@@ -81,15 +100,17 @@ def train(db_path: Path | None, output_dir: Path, node: str | None):
     if X.empty:
         raise RuntimeError("Dati insufficienti dopo il preprocessing.")
 
-    if len(X) < 5:
+    if len(X) < 10:
         X_train, X_test, y25_train, y25_test = X, X, y25, y25
         y10_train, y10_test = y10, y10
     else:
-        X_train, X_test, y25_train, y25_test = train_test_split(X, y25, test_size=0.2, random_state=42)
-        _, _, y10_train, y10_test = train_test_split(X, y10, test_size=0.2, random_state=42)
+        split_idx = int(len(X) * 0.8)
+        X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+        y25_train, y25_test = y25.iloc[:split_idx], y25.iloc[split_idx:]
+        y10_train, y10_test = y10.iloc[:split_idx], y10.iloc[split_idx:]
 
-    model25 = RandomForestRegressor(n_estimators=200, random_state=42)
-    model10 = RandomForestRegressor(n_estimators=200, random_state=42)
+    model25 = HistGradientBoostingRegressor(max_depth=6, learning_rate=0.08, max_iter=300, random_state=42)
+    model10 = HistGradientBoostingRegressor(max_depth=6, learning_rate=0.08, max_iter=300, random_state=42)
 
     model25.fit(X_train, y25_train)
     model10.fit(X_train, y10_train)

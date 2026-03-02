@@ -20,7 +20,17 @@ export type Section =
   | 'thresholds'
   | 'system'
   | 'risk'
-  | 'report';
+  | 'report'
+  | 'ai-lab'
+  | 'models'
+  | 'dataset'
+  | 'alerts'
+  | 'mobility'
+  | 'exposure-forecast'
+  | 'diagnostics'
+  | 'operations'
+  | 'compliance'
+  | 'raw';
 
 interface SidebarProps {
   activeSection: Section;
@@ -39,6 +49,16 @@ const navItems = [
   { id: 'risk' as Section, label: 'Risk Timeline', icon: Activity },
   { id: 'system' as Section, label: 'Sistema', icon: Radio },
   { id: 'report' as Section, label: 'Report AI', icon: FileText },
+  { id: 'ai-lab' as Section, label: 'AI Lab', icon: Sparkles },
+  { id: 'models' as Section, label: 'Model Registry', icon: Brain },
+  { id: 'dataset' as Section, label: 'Dataset', icon: BarChart3 },
+  { id: 'alerts' as Section, label: 'Alerts', icon: Activity },
+  { id: 'mobility' as Section, label: 'Mobility', icon: Map },
+  { id: 'exposure-forecast' as Section, label: 'Exposure Forecast', icon: Sparkles },
+  { id: 'diagnostics' as Section, label: 'Diagnostics', icon: Radio },
+  { id: 'operations' as Section, label: 'Operations', icon: Radio },
+  { id: 'compliance' as Section, label: 'Compliance', icon: FileText },
+  { id: 'raw' as Section, label: 'Raw Data', icon: BarChart3 },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) => {

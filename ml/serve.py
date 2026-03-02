@@ -132,6 +132,45 @@ def model_forecast(df: pd.DataFrame) -> dict:
     return postprocess_forecast(preds, df)
 
 
+def model_forecast_pm10(df: pd.DataFrame) -> dict:
+    if not MODEL_PATH.exists():
+        return {}
+    hourly = to_features(df, LAGS)
+    if hourly.empty:
+        return {}
+    bundle = joblib.load(MODEL_PATH)
+    model = bundle.get("model_pm10")
+    if model is None:
+        return {}
+
+    preds = {}
+    last = hourly.copy()
+    for h in [1, 2, 3, 4, 5]:
+        row = {}
+        for i in range(1, LAGS + 1):
+            row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
+            row[f"pm10_lag_{i}"] = last.iloc[-i]["pm10"]
+        future_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=h)
+        row["hour_of_day"] = future_hour.hour
+        row["day_of_week"] = future_hour.dayofweek
+        X = pd.DataFrame([row])
+        p = float(model.predict(X)[0])
+        preds[h] = round(clamp(p, 5, 500), 1)
+
+        next_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
+        last = pd.concat(
+            [
+                last,
+                pd.DataFrame(
+                    [{"bucket": next_hour, "pm25": last.iloc[-1]["pm25"], "pm10": p}]
+                ),
+            ],
+            ignore_index=True,
+        )
+
+    return preds
+
+
 def postprocess_forecast(preds: dict, df: pd.DataFrame) -> dict:
     if df.empty:
         return preds
@@ -411,6 +450,7 @@ def ai_debug():
 def predict(node: str | None = None):
     df = load_recent_data(hours=6, node=node)
     forecast = model_forecast(df)
+    forecast_pm10 = model_forecast_pm10(df)
     ratio = 1.0
     if not df.empty and float(df["pm10"].iloc[-1]) > 0:
         ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
@@ -423,10 +463,9 @@ def predict(node: str | None = None):
         {
             "hour": h,
             "value": round(
-                (
-                    (forecast.get(h) or simple_forecast(df).get(h) or 0)
-                    / max(ratio, 0.1)
-                ),
+                forecast_pm10.get(h)
+                if forecast_pm10.get(h) is not None
+                else (forecast.get(h) or simple_forecast(df).get(h) or 0) / max(ratio, 0.1),
                 1,
             ),
         }

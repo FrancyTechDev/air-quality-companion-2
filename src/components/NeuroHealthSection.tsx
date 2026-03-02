@@ -25,7 +25,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
   const fetchAIAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const result = await getAIInsights();
+      const result = await getAIInsights(history);
       setAiAnalysis(result);
     } catch (error) {
       console.error(error);
@@ -38,7 +38,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
     if (history.length >= 10 && !aiAnalysis) {
       fetchAIAnalysis();
     }
-  }, [history.length]);
+  }, [history.length, aiAnalysis]);
 
   const getRiskColor = (level: string) => {
     switch (level) {

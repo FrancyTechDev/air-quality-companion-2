@@ -44,44 +44,37 @@ export interface AIAnalysis {
   ess: number;
   source: { label: string; confidence: number };
   advisory: string[];
-}export const getAIInsights = async (history: SensorData[]): Promise<AIAnalysis> => {
-  if (history.length === 0) {
-    return {
-      riskLevel: 'low',
-      summary: "Dati insufficienti per un'analisi AI affidabile.",
-      recommendations: ['Raccogliere più campioni per attivare l’analisi.']
-    };
-  }
+}
 
-  const recent = history.slice(-24);
-  const avgPm25 = recent.reduce((acc, d) => acc + d.pm25, 0) / recent.length;
-  const maxPm25 = Math.max(...recent.map(d => d.pm25));
+const AI_BASE = (import.meta as any).env?.VITE_AI_URL || window.location.origin;
 
-  let riskLevel: AIAnalysis['riskLevel'] = 'low';
-  if (avgPm25 > 55 || maxPm25 > 150) riskLevel = 'critical';
-  else if (avgPm25 > 35 || maxPm25 > 100) riskLevel = 'high';
-  else if (avgPm25 > 25 || maxPm25 > 55) riskLevel = 'moderate';
-
-  const recommendations: string[] = [];
-  if (riskLevel === 'critical') {
-    recommendations.push("Evitare attività all'aperto prolungate.");
-    recommendations.push('Usare mascherina FFP2 se necessario uscire.');
-    recommendations.push('Aerare gli ambienti in fasce con aria più pulita.');
-  } else if (riskLevel === 'high') {
-    recommendations.push('Limitare attività fisica intensa all’aperto.');
-    recommendations.push('Monitorare i picchi nelle prossime ore.');
-  } else if (riskLevel === 'moderate') {
-    recommendations.push('Preferire percorsi con meno traffico.');
-    recommendations.push('Ridurre esposizione nelle ore di punta.');
-  } else {
-    recommendations.push('Qualità accettabile, mantieni il monitoraggio.');
-  }
-
+const buildFallbackInsights = (history?: SensorData[]): AIAnalysis => {
+  const recent = (history && history.length > 0 ? history.slice(-60) : []);
+  const avgPm25 = recent.length > 0 ? recent.reduce((acc, d) => acc + d.pm25, 0) / recent.length : 0;
+  const avgPm10 = recent.length > 0 ? recent.reduce((acc, d) => acc + d.pm10, 0) / recent.length : 0;
+  const threshold = 15;
   return {
-    riskLevel,
-    summary: `Analisi AI preliminare: media PM2.5 ${avgPm25.toFixed(1)} µg/m³, picco ${maxPm25.toFixed(1)} µg/m³.`,
-    recommendations
+    realtime: { pm25: avgPm25, pm10: avgPm10, ratio: avgPm10 > 0 ? avgPm25 / avgPm10 : 0, trend: 0, volatility: 0 },
+    forecast: { h1: null, h2: null, h3: null, prob_over_threshold: 0, threshold },
+    exposure: { exposure_1h: 0, exposure_6h: 0, exposure_24h: 0, avg_1h: avgPm25, avg_6h: avgPm25, avg_24h: avgPm25 },
+    moving_averages: { ma_5m: avgPm25, ma_15m: avgPm25, ma_60m: avgPm25 },
+    adaptive_threshold: { adaptive_threshold: threshold, method: 'fallback' },
+    data_quality: { samples: recent.length, last_gap_s: null, sample_rate_min: 0 },
+    ess: 0,
+    source: { label: 'unknown', confidence: 0.0 },
+    advisory: ['Dati insufficienti per analisi AI completa.']
   };
+};
+
+export const getAIInsights = async (history?: SensorData[]): Promise<AIAnalysis> => {
+  try {
+    const res = await fetch(`${AI_BASE}/ai/insights`);
+    if (!res.ok) throw new Error('AI insights error');
+    const json = (await res.json()) as AIAnalysis;
+    return json;
+  } catch {
+    return buildFallbackInsights(history);
+  }
 };
 export const fetchLocalAiPredictions = async (): Promise<PredictionResult | null> => {
   const controller = new AbortController();

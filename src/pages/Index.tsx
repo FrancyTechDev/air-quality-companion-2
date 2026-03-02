@@ -12,6 +12,16 @@ import ThresholdSection from '@/components/ThresholdSection';
 import SystemSection from '@/components/SystemSection';
 import RiskTimelineSection from '@/components/RiskTimelineSection';
 import ReportSection from '@/components/ReportSection';
+import AILabSection from '@/components/AILabSection';
+import ModelsSection from '@/components/ModelsSection';
+import DatasetSection from '@/components/DatasetSection';
+import AlertsSection from '@/components/AlertsSection';
+import MobilitySection from '@/components/MobilitySection';
+import ExposureForecastSection from '@/components/ExposureForecastSection';
+import DiagnosticsSection from '@/components/DiagnosticsSection';
+import OperationsSection from '@/components/OperationsSection';
+import ComplianceSection from '@/components/ComplianceSection';
+import RawDataSection from '@/components/RawDataSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
@@ -198,6 +208,136 @@ const Index = () => {
           </motion.div>
         );
 
+      case 'ai-lab':
+        return (
+          <motion.div
+            key="ai-lab"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AILabSection />
+          </motion.div>
+        );
+
+      case 'models':
+        return (
+          <motion.div
+            key="models"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ModelsSection />
+          </motion.div>
+        );
+
+      case 'dataset':
+        return (
+          <motion.div
+            key="dataset"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <DatasetSection />
+          </motion.div>
+        );
+
+      case 'alerts':
+        return (
+          <motion.div
+            key="alerts"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AlertsSection />
+          </motion.div>
+        );
+
+      case 'mobility':
+        return (
+          <motion.div
+            key="mobility"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <MobilitySection />
+          </motion.div>
+        );
+
+      case 'exposure-forecast':
+        return (
+          <motion.div
+            key="exposure-forecast"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ExposureForecastSection />
+          </motion.div>
+        );
+
+      case 'diagnostics':
+        return (
+          <motion.div
+            key="diagnostics"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <DiagnosticsSection />
+          </motion.div>
+        );
+
+      case 'operations':
+        return (
+          <motion.div
+            key="operations"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <OperationsSection />
+          </motion.div>
+        );
+
+      case 'compliance':
+        return (
+          <motion.div
+            key="compliance"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ComplianceSection />
+          </motion.div>
+        );
+
+      case 'raw':
+        return (
+          <motion.div
+            key="raw"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <RawDataSection history={history} />
+          </motion.div>
+        );
+
       default:
         return null;
     }
@@ -249,6 +389,16 @@ const Index = () => {
                   { id: 'risk' as Section, label: 'Risk Timeline' },
                   { id: 'system' as Section, label: 'Sistema' },
                   { id: 'report' as Section, label: 'Report AI' },
+                  { id: 'ai-lab' as Section, label: 'AI Lab' },
+                  { id: 'models' as Section, label: 'Model Registry' },
+                  { id: 'dataset' as Section, label: 'Dataset' },
+                  { id: 'alerts' as Section, label: 'Alerts' },
+                  { id: 'mobility' as Section, label: 'Mobility' },
+                  { id: 'exposure-forecast' as Section, label: 'Exposure Forecast' },
+                  { id: 'diagnostics' as Section, label: 'Diagnostics' },
+                  { id: 'operations' as Section, label: 'Operations' },
+                  { id: 'compliance' as Section, label: 'Compliance' },
+                  { id: 'raw' as Section, label: 'Raw Data' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -292,6 +442,16 @@ const Index = () => {
               {activeSection === 'risk' && 'Risk Timeline'}
               {activeSection === 'system' && 'System Status'}
               {activeSection === 'report' && 'Report AI'}
+              {activeSection === 'ai-lab' && 'AI Lab'}
+              {activeSection === 'models' && 'Model Registry'}
+              {activeSection === 'dataset' && 'Dataset Intelligence'}
+              {activeSection === 'alerts' && 'Alerts & Early Warning'}
+              {activeSection === 'mobility' && 'Mobility Intelligence'}
+              {activeSection === 'exposure-forecast' && 'Exposure Forecast Engine'}
+              {activeSection === 'diagnostics' && 'Diagnostics'}
+              {activeSection === 'operations' && 'Operations Center'}
+              {activeSection === 'compliance' && 'Compliance & Guidelines'}
+              {activeSection === 'raw' && 'Raw Data'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeSection === 'map' && "Tracciamento GPS e qualità dell'aria"}
@@ -304,6 +464,16 @@ const Index = () => {
               {activeSection === 'risk' && 'Timeline rischio e PM2.5'}
               {activeSection === 'system' && 'Qualità dati e stabilità pipeline'}
               {activeSection === 'report' && 'Sintesi tecnica e PDF'}
+              {activeSection === 'ai-lab' && 'Controllo AI e segnali avanzati'}
+              {activeSection === 'models' && 'Catalogo modelli e pipeline'}
+              {activeSection === 'dataset' && 'Copertura, densità e qualità'}
+              {activeSection === 'alerts' && 'Sistema di allarme preventivo'}
+              {activeSection === 'mobility' && 'Analisi percorsi e mobilità'}
+              {activeSection === 'exposure-forecast' && 'Previsione esposizione'}
+              {activeSection === 'diagnostics' && 'Debug tecnico e performance'}
+              {activeSection === 'operations' && 'Operazioni e stato rete'}
+              {activeSection === 'compliance' && 'Linee guida e soglie'}
+              {activeSection === 'raw' && 'Dati grezzi e JSON tecnico'}
             </p>
           </div>
 
