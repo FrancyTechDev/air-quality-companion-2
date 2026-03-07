@@ -29,7 +29,7 @@ def clamp(value: float, lo: float, hi: float) -> float:
 
 def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
     if not DB_URL:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
     conn = psycopg2.connect(DB_URL, sslmode="require")
     try:
         with conn.cursor() as cur:
@@ -51,7 +51,7 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
         conn.close()
 
     if not rows:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
 
     df = pd.DataFrame(rows, columns=["pm25", "pm10", "timestamp"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
@@ -59,6 +59,8 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
 
 
 def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
+    if df.empty or "timestamp" not in df.columns:
+        return pd.DataFrame()
     d = df.copy()
     d["bucket"] = d["timestamp"].dt.floor("10min")
     hourly = (
