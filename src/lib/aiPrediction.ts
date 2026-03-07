@@ -41,6 +41,7 @@ export interface AIAnalysis {
   moving_averages: { ma_5m: number; ma_15m: number; ma_60m: number };
   adaptive_threshold: { adaptive_threshold: number; method: string };
   data_quality: { samples: number; last_gap_s: number | null; sample_rate_min: number };
+  recovery: { recovery_index: number; time_since_peak_h: number | null; time_since_above_threshold_h: number | null; recovery_stage: string; fatigue_score: number };
   ess: number;
   source: { label: string; confidence: number };
   advisory: string[];
@@ -60,6 +61,7 @@ const buildFallbackInsights = (history?: SensorData[]): AIAnalysis => {
     moving_averages: { ma_5m: avgPm25, ma_15m: avgPm25, ma_60m: avgPm25 },
     adaptive_threshold: { adaptive_threshold: threshold, method: 'fallback' },
     data_quality: { samples: recent.length, last_gap_s: null, sample_rate_min: 0 },
+    recovery: { recovery_index: 0, time_since_peak_h: null, time_since_above_threshold_h: null, recovery_stage: 'stable', fatigue_score: 0 },
     ess: 0,
     source: { label: 'unknown', confidence: 0.0 },
     advisory: ['Dati insufficienti per analisi AI completa.']

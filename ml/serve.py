@@ -12,6 +12,8 @@ LAGS = 6
 HORIZON = [1, 2, 3]
 HORIZON_PRED = [1, 2, 3, 4, 5]
 WHO_THRESHOLD = 15.0
+NEURO_THRESHOLD = 25.0
+RECOVERY_HALFLIFE_H = 2.0
 
 app = FastAPI()
 app.add_middleware(
@@ -29,7 +31,7 @@ def clamp(value: float, lo: float, hi: float) -> float:
 
 def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
     if not DB_URL:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
     conn = psycopg2.connect(DB_URL, sslmode="require")
     try:
         with conn.cursor() as cur:
@@ -51,7 +53,7 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
         conn.close()
 
     if not rows:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
 
     df = pd.DataFrame(rows, columns=["pm25", "pm10", "timestamp"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
@@ -59,6 +61,8 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
 
 
 def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
+    if df.empty or "timestamp" not in df.columns:
+        return pd.DataFrame()
     d = df.copy()
     d["bucket"] = d["timestamp"].dt.floor("10min")
     hourly = (
@@ -243,6 +247,68 @@ def exposure_metrics(df: pd.DataFrame) -> dict:
     }
 
 
+def recovery_metrics(df: pd.DataFrame) -> dict:
+    if df.empty:
+        return {
+            "recovery_index": 0.0,
+            "time_since_peak_h": None,
+            "time_since_above_threshold_h": None,
+            "recovery_stage": "stable",
+            "fatigue_score": 0.0,
+        }
+
+    df = df.sort_values("timestamp")
+    recent = df.tail(360)
+    now = recent["timestamp"].iloc[-1]
+
+    above = recent[recent["pm25"] > NEURO_THRESHOLD]
+    if above.empty:
+        return {
+            "recovery_index": 10.0,
+            "time_since_peak_h": None,
+            "time_since_above_threshold_h": None,
+            "recovery_stage": "recovered",
+            "fatigue_score": 0.0,
+        }
+
+    last_above_time = above["timestamp"].iloc[-1]
+    time_since_above_h = (now - last_above_time).total_seconds() / 3600.0
+    peak_idx = recent["pm25"].idxmax()
+    peak_time = recent.loc[peak_idx, "timestamp"]
+    time_since_peak_h = (now - peak_time).total_seconds() / 3600.0
+
+    # Exponential decay for recovery (higher = worse, decays with time)
+    recovery_index = 100.0 * pow(0.5, time_since_above_h / RECOVERY_HALFLIFE_H)
+
+    # Fatigue score: integrate above-threshold area with decay
+    fatigue = 0.0
+    for i in range(1, len(recent)):
+        t0 = recent["timestamp"].iloc[i - 1]
+        t1 = recent["timestamp"].iloc[i]
+        dt_h = (t1 - t0).total_seconds() / 3600.0
+        if dt_h <= 0:
+            continue
+        v = max(0.0, recent["pm25"].iloc[i - 1] - NEURO_THRESHOLD)
+        age_h = (now - t0).total_seconds() / 3600.0
+        decay = pow(0.5, age_h / RECOVERY_HALFLIFE_H)
+        fatigue += v * dt_h * decay
+
+    if recovery_index > 70:
+        stage = "acute"
+    elif recovery_index > 35:
+        stage = "recovering"
+    else:
+        stage = "stable"
+
+    return {
+        "recovery_index": round(recovery_index, 1),
+        "time_since_peak_h": round(time_since_peak_h, 2),
+        "time_since_above_threshold_h": round(time_since_above_h, 2),
+        "recovery_stage": stage,
+        "fatigue_score": round(fatigue, 2),
+    }
+
+
 def moving_averages(df: pd.DataFrame) -> dict:
     if df.empty:
         return {"ma_5m": 0, "ma_15m": 0, "ma_60m": 0}
@@ -403,6 +469,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
     ma = moving_averages(df)
     adaptive = adaptive_threshold(df)
     quality = data_quality(df)
+    recovery = recovery_metrics(df)
 
     prob = 0.0
     forecast_max = max([v for v in forecast.values() if v is not None] or [0])
@@ -426,6 +493,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
         "moving_averages": ma,
         "adaptive_threshold": adaptive,
         "data_quality": quality,
+        "recovery": recovery,
         "ess": ess,
         "source": source,
         "advisory": advisory(ess, forecast, prob),

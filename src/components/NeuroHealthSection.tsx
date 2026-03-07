@@ -166,8 +166,18 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
                     <p className="text-2xl font-bold">{aiAnalysis.ess}</p>
                   </div>
                   <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Recovery Index</p>
+                    <p className="text-2xl font-bold">{aiAnalysis.recovery.recovery_index}</p>
+                    <p className="text-[10px] text-muted-foreground">Stage: {aiAnalysis.recovery.recovery_stage}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
                     <p className="text-xs text-muted-foreground">Sorgente probabile</p>
                     <p className="text-sm font-semibold">{aiAnalysis.source.label} ({Math.round(aiAnalysis.source.confidence * 100)}%)</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border bg-card/60">
+                    <p className="text-xs text-muted-foreground">Time Since Peak</p>
+                    <p className="text-sm font-semibold">{aiAnalysis.recovery.time_since_peak_h ?? '--'} h</p>
+                    <p className="text-[10px] text-muted-foreground">Above threshold: {aiAnalysis.recovery.time_since_above_threshold_h ?? '--'} h</p>
                   </div>
                   <div className="p-3 rounded-xl border border-border bg-card/60">
                     <p className="text-xs text-muted-foreground">Exposure 1h / 6h</p>

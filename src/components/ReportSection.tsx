@@ -108,6 +108,7 @@ const ReportSection = () => {
     sectionTitle('NeuroHealth Clinical');
     addParagraph(
       `Risk score (ESS): ${data?.ess ?? '--'} / 100. Trend: ${trendLabel}. ` +
+      `Recovery index: ${data?.recovery.recovery_index ?? '--'} (stage ${data?.recovery.recovery_stage ?? '--'}). ` +
       'Interpretation: The model evaluates acute exposure windows and volatility; upward trends indicate higher short-term neurological risk.'
     );
 
