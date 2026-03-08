@@ -27,7 +27,7 @@ const ModelsSection = () => {
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">NeuroHealth Model</p>
-          <p className="text-xl font-bold mt-2">Acute Window 6h</p>
+          <p className="text-xl font-bold mt-2">Acute Window 12h</p>
           <p className="text-xs text-muted-foreground mt-2">Calibrazione su finestra recente</p>
           <p className="text-xs text-muted-foreground mt-2">Reset automatico post-evento</p>
         </div>

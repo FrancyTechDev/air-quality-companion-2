@@ -93,12 +93,15 @@ export const calculateNeuroHealthRisk = (history: SensorData[]): NeuroHealthRisk
     return { level: 'low', percentage: 0, cumulativeExposure: 0, timeAboveThreshold: 0 };
   }
 
-  const windowHours = 6;
+  const windowHours = 12;
   const threshold = 25;
   const latest = history[history.length - 1]?.timestamp?.getTime?.() ?? Date.now();
   const cutoff = latest - windowHours * 3600 * 1000;
   const window = history.filter(d => (d.timestamp?.getTime?.() ?? 0) >= cutoff);
-  const samples = window.length > 0 ? window : history.slice(-120);
+  if (window.length === 0) {
+    return { level: 'low', percentage: 0, cumulativeExposure: 0, timeAboveThreshold: 0 };
+  }
+  const samples = window;
 
   const aboveThreshold = samples.filter(d => d.pm25 > threshold).length;
   const timeAboveThreshold = (aboveThreshold / samples.length) * 100;
