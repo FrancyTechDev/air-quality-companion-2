@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wind, Droplets, Menu, X } from 'lucide-react';
 import Sidebar, { Section } from '@/components/Sidebar';
@@ -25,16 +25,16 @@ import RawDataSection from '@/components/RawDataSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
-import { computeLocalInsights } from '@/lib/aiPrediction';
+import { useAiInsights } from '@/hooks/useAiInsights';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('map');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { currentData, history, isConnected } = useSensorData();
+  const { data: aiInsights } = useAiInsights(history, currentData);
 
   const airQuality = getAirQualityInfo(currentData.pm25);
   const neuroRisk = calculateNeuroHealthRisk(history);
-  const aiInsights = useMemo(() => computeLocalInsights(history, currentData), [history, currentData]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
