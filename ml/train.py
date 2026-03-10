@@ -102,7 +102,8 @@ def label_source(ratio: float, delta: float, duration_min: float, pm25: float, p
         return "background_elevation"
     if delta > 12 and duration_min < 10:
         return "anomalous_spike"
-    return "unknown"
+    # Avoid "unknown" for training labels to reduce undecided outputs
+    return "background_elevation"
 
 
 def build_window_features(binned: pd.DataFrame, window: int = 6) -> pd.DataFrame:

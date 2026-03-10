@@ -485,7 +485,11 @@ def source_classifier_ml(df: pd.DataFrame) -> dict:
     proba = model.predict_proba(X)[0]
     classes = bundle.get("source_classes", model.classes_)
     best_idx = int(proba.argmax())
-    return {"label": classes[best_idx], "confidence": round(float(proba[best_idx]), 2)}
+    label = classes[best_idx]
+    # Never return "unknown" when ML model is available
+    if label == "unknown":
+        label = "background_elevation"
+    return {"label": label, "confidence": round(float(proba[best_idx]), 2)}
 
 
 def vulnerability_ml(df: pd.DataFrame) -> dict:
