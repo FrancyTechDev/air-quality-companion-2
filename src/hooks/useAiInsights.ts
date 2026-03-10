@@ -73,6 +73,10 @@ const normalizeAi = (remote: Partial<AIAnalysis> | null, local: AIAnalysis): AIA
       label: typeof remote.source?.label === 'string' ? remote.source!.label : local.source.label,
       confidence: isFiniteNumber(remote.source?.confidence) ? clamp(remote.source!.confidence, 0, 1) : local.source.confidence,
     },
+    vulnerability: {
+      score: isFiniteNumber(remote.vulnerability?.score) ? clamp(remote.vulnerability!.score, 0, 100) : local.vulnerability.score,
+      level: typeof remote.vulnerability?.level === 'string' ? (remote.vulnerability!.level as AIAnalysis['vulnerability']['level']) : local.vulnerability.level,
+    },
     advisory: Array.isArray(remote.advisory) && remote.advisory.length > 0 ? remote.advisory : local.advisory,
   };
 

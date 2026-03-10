@@ -99,6 +99,12 @@ def simple_forecast(df: pd.DataFrame, horizon: list[int]) -> dict:
     return postprocess_forecast(preds, df)
 
 
+def load_model_bundle() -> dict | None:
+    if not MODEL_PATH.exists():
+        return None
+    return joblib.load(MODEL_PATH)
+
+
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
         return simple_forecast(df, HORIZON)
@@ -107,7 +113,11 @@ def model_forecast(df: pd.DataFrame) -> dict:
         return simple_forecast(df, HORIZON)
     if len(hourly) < LAGS:
         return simple_forecast(df, HORIZON)
-    bundle = joblib.load(MODEL_PATH)
+    bundle = load_model_bundle()
+    if not bundle:
+        return simple_forecast(df, HORIZON)
+    if bundle.get("r2_pm25") is not None and bundle.get("r2_pm25", 0) < 0:
+        return simple_forecast(df, HORIZON)
     model = bundle["model_pm25"]
 
     preds = {}
@@ -144,7 +154,11 @@ def model_forecast_pm10(df: pd.DataFrame) -> dict:
     hourly = to_features(df, LAGS)
     if hourly.empty:
         return {}
-    bundle = joblib.load(MODEL_PATH)
+    bundle = load_model_bundle()
+    if not bundle:
+        return {}
+    if bundle.get("r2_pm10") is not None and bundle.get("r2_pm10", 0) < 0:
+        return {}
     model = bundle.get("model_pm10")
     if model is None:
         return {}
@@ -419,6 +433,119 @@ def source_classifier(df: pd.DataFrame) -> dict:
     return {"label": "unknown", "confidence": 0.4}
 
 
+def source_classifier_ml(df: pd.DataFrame) -> dict:
+    bundle = load_model_bundle()
+    if not bundle or not bundle.get("model_source"):
+        return source_classifier(df)
+    if df.empty:
+        return {"label": "unknown", "confidence": 0.0}
+
+    recent = df.sort_values("timestamp").tail(6)
+    if len(recent) < 2:
+        return source_classifier(df)
+    recent["bucket"] = recent["timestamp"].dt.floor("10min")
+    recent = recent.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("bucket")
+    if len(recent) < 2:
+        return source_classifier(df)
+
+    t0 = recent["bucket"].iloc[0]
+    t1 = recent["bucket"].iloc[-1]
+    duration_min = max((t1 - t0).total_seconds() / 60.0, 1)
+    pm25_last = float(recent["pm25"].iloc[-1])
+    pm10_last = float(recent["pm10"].iloc[-1])
+    ratio = pm25_last / pm10_last if pm10_last > 0 else 0
+    delta = pm25_last - float(recent["pm25"].iloc[0])
+    trend = (delta / duration_min) * 60.0
+    volatility = float(recent["pm25"].std()) if len(recent) > 1 else 0.0
+    avg_pm25 = float(recent["pm25"].mean())
+    avg_pm10 = float(recent["pm10"].mean())
+    max_pm25 = float(recent["pm25"].max())
+    min_pm25 = float(recent["pm25"].min())
+    spike = max_pm25 - avg_pm25
+
+    X = pd.DataFrame(
+        [
+            {
+                "pm25_last": pm25_last,
+                "pm10_last": pm10_last,
+                "ratio": ratio,
+                "delta": delta,
+                "trend": trend,
+                "volatility": volatility,
+                "avg_pm25": avg_pm25,
+                "avg_pm10": avg_pm10,
+                "max_pm25": max_pm25,
+                "min_pm25": min_pm25,
+                "spike": spike,
+                "duration_min": duration_min,
+            }
+        ]
+    )
+    model = bundle["model_source"]
+    proba = model.predict_proba(X)[0]
+    classes = bundle.get("source_classes", model.classes_)
+    best_idx = int(proba.argmax())
+    return {"label": classes[best_idx], "confidence": round(float(proba[best_idx]), 2)}
+
+
+def vulnerability_ml(df: pd.DataFrame) -> dict:
+    bundle = load_model_bundle()
+    if not bundle or not bundle.get("model_vulnerability") or df.empty:
+        return {"score": 0.0, "level": "low"}
+
+    recent = df.sort_values("timestamp").tail(6)
+    if len(recent) < 2:
+        return {"score": 0.0, "level": "low"}
+    recent["bucket"] = recent["timestamp"].dt.floor("10min")
+    recent = recent.groupby("bucket", as_index=False)[["pm25", "pm10"]].mean().sort_values("bucket")
+    if len(recent) < 2:
+        return {"score": 0.0, "level": "low"}
+
+    t0 = recent["bucket"].iloc[0]
+    t1 = recent["bucket"].iloc[-1]
+    duration_min = max((t1 - t0).total_seconds() / 60.0, 1)
+    pm25_last = float(recent["pm25"].iloc[-1])
+    pm10_last = float(recent["pm10"].iloc[-1])
+    ratio = pm25_last / pm10_last if pm10_last > 0 else 0
+    delta = pm25_last - float(recent["pm25"].iloc[0])
+    trend = (delta / duration_min) * 60.0
+    volatility = float(recent["pm25"].std()) if len(recent) > 1 else 0.0
+    avg_pm25 = float(recent["pm25"].mean())
+    avg_pm10 = float(recent["pm10"].mean())
+    max_pm25 = float(recent["pm25"].max())
+    min_pm25 = float(recent["pm25"].min())
+    spike = max_pm25 - avg_pm25
+
+    X = pd.DataFrame(
+        [
+            {
+                "pm25_last": pm25_last,
+                "pm10_last": pm10_last,
+                "ratio": ratio,
+                "delta": delta,
+                "trend": trend,
+                "volatility": volatility,
+                "avg_pm25": avg_pm25,
+                "avg_pm10": avg_pm10,
+                "max_pm25": max_pm25,
+                "min_pm25": min_pm25,
+                "spike": spike,
+                "duration_min": duration_min,
+            }
+        ]
+    )
+    model = bundle["model_vulnerability"]
+    score = float(model.predict(X)[0])
+    score = round(clamp(score, 0.0, 100.0), 1)
+    if score >= 70:
+        level = "high"
+    elif score >= 40:
+        level = "moderate"
+    else:
+        level = "low"
+    return {"score": score, "level": level}
+
+
 def calc_ess(realtime: dict, exposure: dict, forecast: dict) -> float:
     current_score = min(realtime["pm25"] / 150.0, 1.0) * 100
     exposure_score = min(exposure["avg_6h"] / 75.0, 1.0) * 100
@@ -470,6 +597,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
     adaptive = adaptive_threshold(df)
     quality = data_quality(df)
     recovery = recovery_metrics(df)
+    vulnerability = vulnerability_ml(df)
 
     prob = 0.0
     forecast_max = max([v for v in forecast.values() if v is not None] or [0])
@@ -478,7 +606,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
         prob = min(1.0, (forecast_max - threshold) / max(threshold, 1))
 
     ess = calc_ess(realtime, exposure, forecast)
-    source = source_classifier(df)
+    source = source_classifier_ml(df)
 
     return {
         "realtime": realtime,
@@ -496,6 +624,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
         "recovery": recovery,
         "ess": ess,
         "source": source,
+        "vulnerability": vulnerability,
         "advisory": advisory(ess, forecast, prob),
     }
 

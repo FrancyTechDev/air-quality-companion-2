@@ -44,6 +44,7 @@ export interface AIAnalysis {
   recovery: { recovery_index: number; time_since_peak_h: number | null; time_since_above_threshold_h: number | null; recovery_stage: string; fatigue_score: number };
   ess: number;
   source: { label: string; confidence: number };
+  vulnerability: { score: number; level: 'low' | 'moderate' | 'high' };
   advisory: string[];
 }
 
@@ -151,6 +152,8 @@ export const computeLocalInsights = (history: SensorData[] = [], current?: Senso
 
   const timeAbove = recent.length === 0 ? 0 : (recent.filter(d => d.pm25 > thresholdOMS).length / recent.length) * 100;
   const ess = computeEssFromPm25(w6.avg > 0 ? w6.avg : pm25Now, thresholdOMS);
+  const vulnerabilityScore = clamp(Math.round((ess * 0.7) + (timeAbove * 0.3)), 0, 100);
+  const vulnerabilityLevel = vulnerabilityScore >= 70 ? 'high' : vulnerabilityScore >= 40 ? 'moderate' : 'low';
 
   const lastGap = recent.length >= 2
     ? Math.max(0, ((recent[recent.length - 1].timestamp?.getTime?.() ?? latest) - (recent[recent.length - 2].timestamp?.getTime?.() ?? latest)) / 1000)
@@ -194,6 +197,7 @@ export const computeLocalInsights = (history: SensorData[] = [], current?: Senso
     },
     ess,
     source,
+    vulnerability: { score: vulnerabilityScore, level: vulnerabilityLevel },
     advisory: [
       'Indicatori calcolati localmente su finestra recente per massima coerenza.',
       `Tempo sopra soglia OMS: ${Math.round(timeAbove)}% nelle ultime 24h.`,
