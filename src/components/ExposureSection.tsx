@@ -3,15 +3,17 @@ import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Clock, ActivitySquare } from 'lucide-react';
 import { SensorData } from '@/lib/airQuality';
-import { useAiInsights } from '@/hooks/useAiInsights';
 import { format } from 'date-fns';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
 interface ExposureSectionProps {
   history: SensorData[];
+  data: AIAnalysis | null;
 }
 
-const ExposureSection = ({ history }: ExposureSectionProps) => {
-  const { data } = useAiInsights();
+const ExposureSection = ({ history, data }: ExposureSectionProps) => {
+  const fmt = (value: number | undefined | null, digits = 2) =>
+    typeof value === 'number' ? value.toFixed(digits) : '--';
 
   const chartData = useMemo(() => {
     return history.slice(-120).map((d) => {
@@ -44,17 +46,17 @@ const ExposureSection = ({ history }: ExposureSectionProps) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Exposure 1h</p>
-          <p className="text-2xl font-bold">{data?.exposure.exposure_1h.toFixed(2) ?? '--'}</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.exposure_1h, 2)}</p>
           <p className="text-xs text-muted-foreground">µg·h/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Exposure 6h</p>
-          <p className="text-2xl font-bold">{data?.exposure.exposure_6h.toFixed(2) ?? '--'}</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.exposure_6h, 2)}</p>
           <p className="text-xs text-muted-foreground">µg·h/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Exposure 24h</p>
-          <p className="text-2xl font-bold">{data?.exposure.exposure_24h.toFixed(2) ?? '--'}</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.exposure_24h, 2)}</p>
           <p className="text-xs text-muted-foreground">µg·h/m³</p>
         </div>
       </div>
@@ -62,15 +64,15 @@ const ExposureSection = ({ history }: ExposureSectionProps) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Media 1h</p>
-          <p className="text-2xl font-bold">{data?.exposure.avg_1h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.avg_1h, 1)} µg/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Media 6h</p>
-          <p className="text-2xl font-bold">{data?.exposure.avg_6h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.avg_6h, 1)} µg/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-sm text-muted-foreground">Media 24h</p>
-          <p className="text-2xl font-bold">{data?.exposure.avg_24h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold">{fmt(data?.exposure?.avg_24h, 1)} µg/m³</p>
         </div>
       </div>
 

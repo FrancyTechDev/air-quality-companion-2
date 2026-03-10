@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wind, Droplets, Menu, X } from 'lucide-react';
 import Sidebar, { Section } from '@/components/Sidebar';
@@ -25,6 +25,7 @@ import RawDataSection from '@/components/RawDataSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
+import { computeLocalInsights } from '@/lib/aiPrediction';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<Section>('map');
@@ -33,6 +34,7 @@ const Index = () => {
 
   const airQuality = getAirQualityInfo(currentData.pm25);
   const neuroRisk = calculateNeuroHealthRisk(history);
+  const aiInsights = useMemo(() => computeLocalInsights(history, currentData), [history, currentData]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -126,7 +128,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <NeuroHealthSection risk={neuroRisk} history={history} />
+            <NeuroHealthSection risk={neuroRisk} ai={aiInsights} />
           </motion.div>
         );
 
@@ -139,7 +141,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ExposureSection history={history} />
+            <ExposureSection history={history} data={aiInsights} />
           </motion.div>
         );
 
@@ -152,7 +154,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <SourceSection />
+            <SourceSection data={aiInsights} />
           </motion.div>
         );
 
@@ -165,7 +167,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ThresholdSection />
+            <ThresholdSection data={aiInsights} />
           </motion.div>
         );
 
@@ -191,7 +193,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <SystemSection />
+            <SystemSection data={aiInsights} />
           </motion.div>
         );
 
@@ -204,7 +206,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ReportSection />
+            <ReportSection data={aiInsights} history={history} currentData={currentData} />
           </motion.div>
         );
 
@@ -217,7 +219,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <AILabSection />
+            <AILabSection data={aiInsights} />
           </motion.div>
         );
 
@@ -243,7 +245,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <DatasetSection />
+            <DatasetSection data={aiInsights} />
           </motion.div>
         );
 
@@ -256,7 +258,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <AlertsSection />
+            <AlertsSection data={aiInsights} />
           </motion.div>
         );
 
@@ -282,7 +284,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ExposureForecastSection />
+            <ExposureForecastSection data={aiInsights} />
           </motion.div>
         );
 
@@ -295,7 +297,7 @@ const Index = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <DiagnosticsSection />
+            <DiagnosticsSection data={aiInsights} />
           </motion.div>
         );
 

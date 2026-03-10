@@ -1,18 +1,27 @@
 import { motion } from 'framer-motion';
 import { FileText, Download } from 'lucide-react';
-import { useAiInsights } from '@/hooks/useAiInsights';
 import { Button } from '@/components/ui/button';
 import { useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useSensorData } from '@/hooks/useSensorData';
+import { SensorData } from '@/lib/airQuality';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const ReportSection = () => {
-  const { data } = useAiInsights();
-  const { history, currentData } = useSensorData();
+interface ReportSectionProps {
+  data: AIAnalysis | null;
+  history: SensorData[];
+  currentData: SensorData;
+}
+
+const ReportSection = ({ data, history, currentData }: ReportSectionProps) => {
   const reportRef = useRef<HTMLDivElement>(null);
 
   const exportPdf = async () => {
+    const fmt = (value: number | undefined | null, digits = 1) =>
+      typeof value === 'number' ? value.toFixed(digits) : '--';
+    const fmtPct = (value: number | undefined | null) =>
+      typeof value === 'number' ? `${Math.round(value * 100)}%` : '--';
+
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const marginX = 36;
@@ -62,12 +71,12 @@ const ReportSection = () => {
       startY: cursorY,
       head: [['Metric', 'Value']],
       body: [
-        ['PM2.5 (current)', `${currentData.pm25.toFixed(1)} µg/m³`],
-        ['PM10 (current)', `${currentData.pm10.toFixed(1)} µg/m³`],
+        ['PM2.5 (current)', `${fmt(currentData?.pm25)} µg/m³`],
+        ['PM10 (current)', `${fmt(currentData?.pm10)} µg/m³`],
         ['ESS', `${data?.ess ?? '--'}`],
-        ['Prob. threshold exceed', `${Math.round((data?.forecast.prob_over_threshold ?? 0) * 100)}%`],
-        ['Adaptive threshold', `${data?.adaptive_threshold.adaptive_threshold ?? '--'} µg/m³`],
-        ['Source', `${data?.source.label ?? '--'} (${Math.round((data?.source.confidence ?? 0) * 100)}%)`],
+        ['Prob. threshold exceed', `${fmtPct(data?.forecast?.prob_over_threshold)}`],
+        ['Adaptive threshold', `${data?.adaptive_threshold?.adaptive_threshold ?? '--'} µg/m³`],
+        ['Source', `${data?.source?.label ?? '--'} (${fmtPct(data?.source?.confidence)})`],
       ],
       styles: { fontSize: 9 },
       margin: { left: marginX, right: marginX }
@@ -80,9 +89,9 @@ const ReportSection = () => {
       startY: cursorY,
       head: [['Window', 'Exposure', 'Average']],
       body: [
-        ['1h', `${data?.exposure.exposure_1h.toFixed(2) ?? '--'}`, `${data?.exposure.avg_1h.toFixed(1) ?? '--'} µg/m³`],
-        ['6h', `${data?.exposure.exposure_6h.toFixed(2) ?? '--'}`, `${data?.exposure.avg_6h.toFixed(1) ?? '--'} µg/m³`],
-        ['24h', `${data?.exposure.exposure_24h.toFixed(2) ?? '--'}`, `${data?.exposure.avg_24h.toFixed(1) ?? '--'} µg/m³`],
+        ['1h', `${fmt(data?.exposure?.exposure_1h, 2)}`, `${fmt(data?.exposure?.avg_1h)} µg/m³`],
+        ['6h', `${fmt(data?.exposure?.exposure_6h, 2)}`, `${fmt(data?.exposure?.avg_6h)} µg/m³`],
+        ['24h', `${fmt(data?.exposure?.exposure_24h, 2)}`, `${fmt(data?.exposure?.avg_24h)} µg/m³`],
       ],
       styles: { fontSize: 9 },
       margin: { left: marginX, right: marginX }
@@ -95,9 +104,9 @@ const ReportSection = () => {
       startY: cursorY,
       head: [['Horizon', 'Forecast']],
       body: [
-        ['+1h', `${data?.forecast.h1 ?? '--'} µg/m³`],
-        ['+2h', `${data?.forecast.h2 ?? '--'} µg/m³`],
-        ['+3h', `${data?.forecast.h3 ?? '--'} µg/m³`],
+        ['+1h', `${data?.forecast?.h1 ?? '--'} µg/m³`],
+        ['+2h', `${data?.forecast?.h2 ?? '--'} µg/m³`],
+        ['+3h', `${data?.forecast?.h3 ?? '--'} µg/m³`],
       ],
       styles: { fontSize: 9 },
       margin: { left: marginX, right: marginX }
@@ -108,7 +117,7 @@ const ReportSection = () => {
     sectionTitle('NeuroHealth Clinical');
     addParagraph(
       `Risk score (ESS): ${data?.ess ?? '--'} / 100. Trend: ${trendLabel}. ` +
-      `Recovery index: ${data?.recovery.recovery_index ?? '--'} (stage ${data?.recovery.recovery_stage ?? '--'}). ` +
+      `Recovery index: ${data?.recovery?.recovery_index ?? '--'} (stage ${data?.recovery?.recovery_stage ?? '--'}). ` +
       'Interpretation: The model evaluates acute exposure windows and volatility; upward trends indicate higher short-term neurological risk.'
     );
 
@@ -130,9 +139,9 @@ const ReportSection = () => {
       startY: cursorY,
       head: [['Metric', 'Value']],
       body: [
-        ['Samples', `${data?.data_quality.samples ?? '--'}`],
-        ['Last gap', `${data?.data_quality.last_gap_s ?? '--'} s`],
-        ['Sample rate', `${data?.data_quality.sample_rate_min ?? '--'} / min`],
+        ['Samples', `${data?.data_quality?.samples ?? '--'}`],
+        ['Last gap', `${data?.data_quality?.last_gap_s ?? '--'} s`],
+        ['Sample rate', `${data?.data_quality?.sample_rate_min ?? '--'} / min`],
       ],
       styles: { fontSize: 9 },
       margin: { left: marginX, right: marginX }

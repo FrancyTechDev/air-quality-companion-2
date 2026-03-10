@@ -30,8 +30,8 @@ export const useSensorData = () => {
         
         // Mappatura dati backend -> formato frontend
         const formattedHistory: SensorData[] = data.map((item: any) => ({
-          pm25: Number(item.pm25),
-          pm10: Number(item.pm10),
+          pm25: Math.max(0, Number(item.pm25)),
+          pm10: Math.max(0, Number(item.pm10)),
           // Il backend manda 'lon', il frontend usa 'lng'
           lat: Number(item.lat),
           lng: Number(item.lon), 
@@ -71,8 +71,8 @@ export const useSensorData = () => {
     socketRef.current.on('new-data', (payload: any) => {
       console.log("Dato real-time ricevuto:", payload);
       const newData: SensorData = {
-        pm25: Number(payload.pm25),
-        pm10: Number(payload.pm10),
+        pm25: Math.max(0, Number(payload.pm25)),
+        pm10: Math.max(0, Number(payload.pm10)),
         lat: Number(payload.lat),
         lng: Number(payload.lon), // Mappatura lon -> lng
         timestamp: new Date(Number(payload.timestamp))

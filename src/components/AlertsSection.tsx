@@ -1,9 +1,12 @@
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const AlertsSection = () => {
-  const { data } = useAiInsights();
-  const prob = data?.forecast.prob_over_threshold ?? 0;
-  const threshold = data?.forecast.threshold ?? 15;
+interface AlertsSectionProps {
+  data: AIAnalysis | null;
+}
+
+const AlertsSection = ({ data }: AlertsSectionProps) => {
+  const prob = data?.forecast?.prob_over_threshold ?? 0;
+  const threshold = data?.forecast?.threshold ?? 15;
 
   return (
     <div className="space-y-6">
@@ -20,8 +23,8 @@ const AlertsSection = () => {
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Soglia adattiva</p>
-          <p className="text-2xl font-bold mt-2">{data?.adaptive_threshold.adaptive_threshold ?? '--'} µg/m³</p>
-          <p className="text-xs text-muted-foreground mt-2">{data?.adaptive_threshold.method ?? '--'}</p>
+          <p className="text-2xl font-bold mt-2">{data?.adaptive_threshold?.adaptive_threshold ?? '--'} µg/m³</p>
+          <p className="text-xs text-muted-foreground mt-2">{data?.adaptive_threshold?.method ?? '--'}</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Raccomandazioni</p>

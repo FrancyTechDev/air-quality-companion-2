@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion';
 import { Server, Database, Activity } from 'lucide-react';
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const SystemSection = () => {
-  const { data } = useAiInsights();
+interface SystemSectionProps {
+  data: AIAnalysis | null;
+}
+
+const SystemSection = ({ data }: SystemSectionProps) => {
   const quality = data?.data_quality;
 
   return (

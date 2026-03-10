@@ -1,5 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Brain,
   Activity,
@@ -9,36 +8,18 @@ import {
   Clock,
   Zap
 } from 'lucide-react';
-import { SensorData, calculateNeuroHealthRisk, NeuroHealthRisk } from '@/lib/airQuality';
-import { getAIInsights, AIAnalysis } from '@/lib/aiPrediction';
+import { NeuroHealthRisk } from '@/lib/airQuality';
+import { AIAnalysis } from '@/lib/aiPrediction';
 import { Button } from '@/components/ui/button';
 
 interface NeuroHealthSectionProps {
   risk: NeuroHealthRisk;
-  history: SensorData[];
+  ai: AIAnalysis | null;
 }
 
-const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const fetchAIAnalysis = async () => {
-    setIsAnalyzing(true);
-    try {
-      const result = await getAIInsights(history);
-      setAiAnalysis(result);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (history.length >= 10 && !aiAnalysis) {
-      fetchAIAnalysis();
-    }
-  }, [history.length, aiAnalysis]);
+const NeuroHealthSection = ({ risk, ai }: NeuroHealthSectionProps) => {
+  const aiAnalysis = ai;
+  const isAnalyzing = false;
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -138,8 +119,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
               size="icon"
               variant="ghost"
               className="h-8 w-8 hover-elevate"
-              onClick={fetchAIAnalysis}
-              disabled={isAnalyzing}
+              disabled
             >
               <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
             </Button>
@@ -203,9 +183,7 @@ const NeuroHealthSection = ({ risk, history }: NeuroHealthSectionProps) => {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-4">
                 <Brain className="w-10 h-10 text-muted/20 mb-3" />
-                <Button size="sm" variant="secondary" onClick={fetchAIAnalysis} disabled={isAnalyzing}>
-                  Avvia Analisi
-                </Button>
+                <p className="text-xs text-muted-foreground">Dati insufficienti per analisi avanzata.</p>
               </div>
             )}
           </div>

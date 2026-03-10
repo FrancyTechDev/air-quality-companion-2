@@ -1,7 +1,10 @@
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const DiagnosticsSection = () => {
-  const { data } = useAiInsights();
+interface DiagnosticsSectionProps {
+  data: AIAnalysis | null;
+}
+
+const DiagnosticsSection = ({ data }: DiagnosticsSectionProps) => {
 
   return (
     <div className="space-y-6">
@@ -13,15 +16,15 @@ const DiagnosticsSection = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Samples</p>
-          <p className="text-2xl font-bold mt-2">{data?.data_quality.samples ?? 0}</p>
+          <p className="text-2xl font-bold mt-2">{data?.data_quality?.samples ?? 0}</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Last gap</p>
-          <p className="text-2xl font-bold mt-2">{data?.data_quality.last_gap_s ?? '--'}s</p>
+          <p className="text-2xl font-bold mt-2">{data?.data_quality?.last_gap_s ?? '--'}s</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Sample rate</p>
-          <p className="text-2xl font-bold mt-2">{data?.data_quality.sample_rate_min ?? 0}/min</p>
+          <p className="text-2xl font-bold mt-2">{data?.data_quality?.sample_rate_min ?? 0}/min</p>
         </div>
       </div>
 

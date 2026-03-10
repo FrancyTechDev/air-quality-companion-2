@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion';
 import { Target, Sliders } from 'lucide-react';
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const ThresholdSection = () => {
-  const { data } = useAiInsights();
+interface ThresholdSectionProps {
+  data: AIAnalysis | null;
+}
+
+const ThresholdSection = ({ data }: ThresholdSectionProps) => {
   const adaptive = data?.adaptive_threshold?.adaptive_threshold ?? null;
   const method = data?.adaptive_threshold?.method ?? '--';
 
@@ -34,7 +37,7 @@ const ThresholdSection = () => {
           </div>
           <div className="ml-auto">
             <p className="text-xs text-muted-foreground">Soglia OMS</p>
-            <p className="text-lg font-semibold">{data?.forecast.threshold ?? 15} µg/m³</p>
+            <p className="text-lg font-semibold">{data?.forecast?.threshold ?? 15} µg/m³</p>
           </div>
         </div>
       </div>
@@ -42,15 +45,15 @@ const ThresholdSection = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-panel p-4">
           <p className="text-xs text-muted-foreground">Prob. sopra soglia</p>
-          <p className="text-xl font-bold">{Math.round((data?.forecast.prob_over_threshold ?? 0) * 100)}%</p>
+          <p className="text-xl font-bold">{Math.round((data?.forecast?.prob_over_threshold ?? 0) * 100)}%</p>
         </div>
         <div className="glass-panel p-4">
           <p className="text-xs text-muted-foreground">MA 5m</p>
-          <p className="text-xl font-bold">{data?.moving_averages.ma_5m.toFixed(1) ?? '--'}</p>
+          <p className="text-xl font-bold">{typeof data?.moving_averages?.ma_5m === 'number' ? data.moving_averages.ma_5m.toFixed(1) : '--'}</p>
         </div>
         <div className="glass-panel p-4">
           <p className="text-xs text-muted-foreground">MA 60m</p>
-          <p className="text-xl font-bold">{data?.moving_averages.ma_60m.toFixed(1) ?? '--'}</p>
+          <p className="text-xl font-bold">{typeof data?.moving_averages?.ma_60m === 'number' ? data.moving_averages.ma_60m.toFixed(1) : '--'}</p>
         </div>
       </div>
     </motion.div>

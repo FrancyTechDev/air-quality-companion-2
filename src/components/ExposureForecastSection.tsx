@@ -1,7 +1,12 @@
-import { useAiInsights } from '@/hooks/useAiInsights';
+import { AIAnalysis } from '@/lib/aiPrediction';
 
-const ExposureForecastSection = () => {
-  const { data } = useAiInsights();
+interface ExposureForecastSectionProps {
+  data: AIAnalysis | null;
+}
+
+const ExposureForecastSection = ({ data }: ExposureForecastSectionProps) => {
+  const fmt = (value: number | undefined | null, digits = 2) =>
+    typeof value === 'number' ? value.toFixed(digits) : '--';
 
   return (
     <div className="space-y-6">
@@ -13,18 +18,18 @@ const ExposureForecastSection = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Exposure 1h</p>
-          <p className="text-2xl font-bold mt-2">{data?.exposure.exposure_1h.toFixed(2) ?? '--'}</p>
-          <p className="text-xs text-muted-foreground mt-2">Media 1h: {data?.exposure.avg_1h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold mt-2">{fmt(data?.exposure?.exposure_1h, 2)}</p>
+          <p className="text-xs text-muted-foreground mt-2">Media 1h: {fmt(data?.exposure?.avg_1h, 1)} µg/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Exposure 6h</p>
-          <p className="text-2xl font-bold mt-2">{data?.exposure.exposure_6h.toFixed(2) ?? '--'}</p>
-          <p className="text-xs text-muted-foreground mt-2">Media 6h: {data?.exposure.avg_6h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold mt-2">{fmt(data?.exposure?.exposure_6h, 2)}</p>
+          <p className="text-xs text-muted-foreground mt-2">Media 6h: {fmt(data?.exposure?.avg_6h, 1)} µg/m³</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Exposure 24h</p>
-          <p className="text-2xl font-bold mt-2">{data?.exposure.exposure_24h.toFixed(2) ?? '--'}</p>
-          <p className="text-xs text-muted-foreground mt-2">Media 24h: {data?.exposure.avg_24h.toFixed(1) ?? '--'} µg/m³</p>
+          <p className="text-2xl font-bold mt-2">{fmt(data?.exposure?.exposure_24h, 2)}</p>
+          <p className="text-xs text-muted-foreground mt-2">Media 24h: {fmt(data?.exposure?.avg_24h, 1)} µg/m³</p>
         </div>
       </div>
     </div>
