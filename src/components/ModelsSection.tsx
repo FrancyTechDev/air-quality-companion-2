@@ -9,27 +9,27 @@ const ModelsSection = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Forecast Model</p>
-          <p className="text-xl font-bold mt-2">XGBoost Multi-Step</p>
-          <p className="text-xs text-muted-foreground mt-2">Input: lag, rolling mean, hour/day, trend</p>
-          <p className="text-xs text-muted-foreground mt-2">Output: +1h/+3h/+6h + intervalli</p>
+          <p className="text-xl font-bold mt-2">Model + Fallback</p>
+          <p className="text-xs text-muted-foreground mt-2">Input: lags PM2.5/PM10, hour/day, day-of-week</p>
+          <p className="text-xs text-muted-foreground mt-2">Fallback: regressione semplice su trend recente</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Source Classifier</p>
-          <p className="text-xl font-bold mt-2">PatternNet v2</p>
-          <p className="text-xs text-muted-foreground mt-2">Input: ratio PM1/PM2.5/PM10, spike, durata</p>
+          <p className="text-xl font-bold mt-2">Heuristic Rules</p>
+          <p className="text-xs text-muted-foreground mt-2">Input: ratio PM2.5/PM10, spike, durata</p>
           <p className="text-xs text-muted-foreground mt-2">Output: label + confidence</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">Exposure Engine</p>
-          <p className="text-xl font-bold mt-2">Dose Forecast</p>
+          <p className="text-xl font-bold mt-2">Dose Metrics</p>
           <p className="text-xs text-muted-foreground mt-2">Stima cumulativa 1h/6h/24h</p>
           <p className="text-xs text-muted-foreground mt-2">Allarmi preventivi</p>
         </div>
         <div className="glass-panel p-5">
           <p className="text-xs text-muted-foreground">NeuroHealth Model</p>
-          <p className="text-xl font-bold mt-2">Acute Window 12h</p>
-          <p className="text-xs text-muted-foreground mt-2">Calibrazione su finestra recente</p>
-          <p className="text-xs text-muted-foreground mt-2">Reset automatico post-evento</p>
+          <p className="text-xl font-bold mt-2">Parametric Risk</p>
+          <p className="text-xs text-muted-foreground mt-2">Finestra recente + soglie cliniche</p>
+          <p className="text-xs text-muted-foreground mt-2">Aggiornamento continuo</p>
         </div>
       </div>
     </div>
