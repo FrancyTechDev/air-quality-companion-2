@@ -22,6 +22,7 @@ import DiagnosticsSection from '@/components/DiagnosticsSection';
 import OperationsSection from '@/components/OperationsSection';
 import ComplianceSection from '@/components/ComplianceSection';
 import RawDataSection from '@/components/RawDataSection';
+import IntegratedCorrelationSection from '@/components/IntegratedCorrelationSection';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
@@ -339,6 +340,18 @@ const Index = () => {
             <RawDataSection history={history} />
           </motion.div>
         );
+      case 'integrated-correlation':
+        return (
+          <motion.div
+            key="integrated-correlation"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <IntegratedCorrelationSection />
+          </motion.div>
+        );
 
       default:
         return null;
@@ -401,6 +414,7 @@ const Index = () => {
                   { id: 'operations' as Section, label: 'Operations' },
                   { id: 'compliance' as Section, label: 'Compliance' },
                   { id: 'raw' as Section, label: 'Raw Data' },
+                  { id: 'integrated-correlation' as Section, label: 'AI Correlazione Integrata' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -454,6 +468,7 @@ const Index = () => {
               {activeSection === 'operations' && 'Operations Center'}
               {activeSection === 'compliance' && 'Compliance & Guidelines'}
               {activeSection === 'raw' && 'Raw Data'}
+              {activeSection === 'integrated-correlation' && 'AI Correlazione Integrata'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeSection === 'map' && "Tracciamento GPS e qualità dell'aria"}
@@ -476,6 +491,7 @@ const Index = () => {
               {activeSection === 'operations' && 'Operazioni e stato rete'}
               {activeSection === 'compliance' && 'Linee guida e soglie'}
               {activeSection === 'raw' && 'Dati grezzi e JSON tecnico'}
+              {activeSection === 'integrated-correlation' && 'Correlazioni tra inquinamento e parametri motori'}
             </p>
           </div>
 

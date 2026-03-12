@@ -7,6 +7,7 @@ import {
   Radio,
   Wind,
   Activity,
+  GitMerge,
   FileText
 } from 'lucide-react';
 
@@ -30,7 +31,8 @@ export type Section =
   | 'diagnostics'
   | 'operations'
   | 'compliance'
-  | 'raw';
+  | 'raw'
+  | 'integrated-correlation';
 
 interface SidebarProps {
   activeSection: Section;
@@ -59,6 +61,7 @@ const navItems = [
   { id: 'operations' as Section, label: 'Operations', icon: Radio },
   { id: 'compliance' as Section, label: 'Compliance', icon: FileText },
   { id: 'raw' as Section, label: 'Raw Data', icon: BarChart3 },
+  { id: 'integrated-correlation' as Section, label: 'AI Correlazione Integrata', icon: GitMerge },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) => {
