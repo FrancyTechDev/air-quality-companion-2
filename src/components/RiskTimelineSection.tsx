@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity } from 'lucide-react';
 import { SensorData } from '@/lib/airQuality';
-import { computeEssFromPm25 } from '@/lib/aiPrediction';
 import { format } from 'date-fns';
 
 interface RiskTimelineSectionProps {
@@ -10,10 +9,12 @@ interface RiskTimelineSectionProps {
 }
 
 const RiskTimelineSection = ({ history }: RiskTimelineSectionProps) => {
-  const data = history.slice(-180).map((d) => {
+  const recent = history.slice(-180);
+  const maxRef = Math.max(150, ...recent.map((d) => d.pm25));
+  const data = recent.map((d) => {
     const date = d.timestamp instanceof Date ? d.timestamp : new Date(Number(d.timestamp));
     const pm25 = d.pm25;
-    const ess = computeEssFromPm25(pm25);
+    const ess = Math.min(100, Math.max(0, (pm25 / maxRef) * 100));
     return {
       time: format(date, 'HH:mm'),
       pm25,
