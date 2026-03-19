@@ -73,6 +73,16 @@ def to_features(df: pd.DataFrame, lags: int = 6) -> pd.DataFrame:
     for i in range(1, lags + 1):
         hourly[f"pm25_lag_{i}"] = hourly["pm25"].shift(i)
         hourly[f"pm10_lag_{i}"] = hourly["pm10"].shift(i)
+
+    hourly["pm25_roll_3"] = hourly["pm25"].shift(1).rolling(3).mean()
+    hourly["pm25_roll_6"] = hourly["pm25"].shift(1).rolling(6).mean()
+    hourly["pm25_std_6"] = hourly["pm25"].shift(1).rolling(6).std()
+    hourly["pm10_roll_3"] = hourly["pm10"].shift(1).rolling(3).mean()
+    hourly["pm10_roll_6"] = hourly["pm10"].shift(1).rolling(6).mean()
+    hourly["pm10_std_6"] = hourly["pm10"].shift(1).rolling(6).std()
+    hourly["pm25_diff_1"] = hourly["pm25"].diff()
+    hourly["pm10_diff_1"] = hourly["pm10"].diff()
+
     hourly["hour_of_day"] = hourly["bucket"].dt.hour
     hourly["day_of_week"] = hourly["bucket"].dt.dayofweek
     hourly = hourly.dropna().reset_index(drop=True)
@@ -121,25 +131,24 @@ def model_forecast(df: pd.DataFrame) -> dict:
     model = bundle["model_pm25"]
 
     preds = {}
-    last = hourly.copy()
+    base_series = df.copy()
+    base_series = base_series.sort_values("timestamp")
+
     for h in [1, 2, 3, 4, 5]:
-        row = {}
-        for i in range(1, LAGS + 1):
-            row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
-            row[f"pm10_lag_{i}"] = last.iloc[-i]["pm10"]
-        future_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=h)
-        row["hour_of_day"] = future_hour.hour
-        row["day_of_week"] = future_hour.dayofweek
-        X = pd.DataFrame([row])
-        p = float(model.predict(X)[0])
+        features = to_features(base_series, LAGS)
+        if features.empty:
+            return simple_forecast(df, HORIZON)
+        X = features.drop(columns=["bucket", "pm25", "pm10"])
+        row = X.iloc[[-1]]
+        p = float(model.predict(row)[0])
         preds[h] = round(clamp(p, 5, 300), 1)
 
-        next_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
-        last = pd.concat(
+        next_hour = features.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
+        base_series = pd.concat(
             [
-                last,
+                base_series,
                 pd.DataFrame(
-                    [{"bucket": next_hour, "pm25": p, "pm10": last.iloc[-1]["pm10"]}]
+                    [{"timestamp": next_hour.to_pydatetime(), "pm25": p, "pm10": float(features.iloc[-1]["pm10"])}]
                 ),
             ],
             ignore_index=True,
@@ -164,25 +173,23 @@ def model_forecast_pm10(df: pd.DataFrame) -> dict:
         return {}
 
     preds = {}
-    last = hourly.copy()
+    base_series = df.copy()
+    base_series = base_series.sort_values("timestamp")
     for h in [1, 2, 3, 4, 5]:
-        row = {}
-        for i in range(1, LAGS + 1):
-            row[f"pm25_lag_{i}"] = last.iloc[-i]["pm25"]
-            row[f"pm10_lag_{i}"] = last.iloc[-i]["pm10"]
-        future_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=h)
-        row["hour_of_day"] = future_hour.hour
-        row["day_of_week"] = future_hour.dayofweek
-        X = pd.DataFrame([row])
-        p = float(model.predict(X)[0])
+        features = to_features(base_series, LAGS)
+        if features.empty:
+            return {}
+        X = features.drop(columns=["bucket", "pm25", "pm10"])
+        row = X.iloc[[-1]]
+        p = float(model.predict(row)[0])
         preds[h] = round(clamp(p, 5, 500), 1)
 
-        next_hour = last.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
-        last = pd.concat(
+        next_hour = features.iloc[-1]["bucket"] + pd.Timedelta(hours=1)
+        base_series = pd.concat(
             [
-                last,
+                base_series,
                 pd.DataFrame(
-                    [{"bucket": next_hour, "pm25": last.iloc[-1]["pm25"], "pm10": p}]
+                    [{"timestamp": next_hour.to_pydatetime(), "pm25": float(features.iloc[-1]["pm25"]), "pm10": p}]
                 ),
             ],
             ignore_index=True,
