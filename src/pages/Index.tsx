@@ -392,7 +392,7 @@ const Index = () => {
               exit={{ opacity: 0, height: 0 }}
               className="border-t border-border overflow-hidden"
             >
-              <nav className="p-4 space-y-2">
+              <nav className="p-4 space-y-2 max-h-[70vh] overflow-y-auto">
                 {[
                   { id: 'map' as Section, label: 'Live Map' },
                   { id: 'analytics' as Section, label: 'Analytics' },
