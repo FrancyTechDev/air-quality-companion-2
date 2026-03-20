@@ -22,6 +22,10 @@ type CsvState = {
   timeColumns: string[];
 };
 
+const CORRELATION_URL =
+  (import.meta as any).env?.VITE_CORRELATION_URL ||
+  '/ai/correlation';
+
 const emptyCsvState: CsvState = { parsed: null, numericColumns: [], timeColumns: [] };
 
 const readFileText = (file: File) =>
@@ -133,6 +137,10 @@ const IntegratedCorrelationSection = () => {
   const [braceletMetrics, setBraceletMetrics] = useState<string[]>([]);
   const [toleranceMinutes, setToleranceMinutes] = useState<number>(5);
   const [results, setResults] = useState<CorrelationResult[] | null>(null);
+  const [source, setSource] = useState<'server' | 'local' | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [sensorFile, setSensorFile] = useState<File | null>(null);
+  const [braceletFile, setBraceletFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canAnalyze =
@@ -151,11 +159,13 @@ const IntegratedCorrelationSection = () => {
       const nextState = { parsed, numericColumns, timeColumns };
 
       if (type === 'sensor') {
+        setSensorFile(file);
         setSensorState(nextState);
         setSensorTime(timeColumns[0] ?? '');
         const auto = numericColumns.filter((col) => col.toLowerCase().includes('pm'));
         setSensorMetrics(auto.length > 0 ? auto : numericColumns.slice(0, 2));
       } else {
+        setBraceletFile(file);
         setBraceletState(nextState);
         setBraceletTime(timeColumns[0] ?? '');
         setBraceletMetrics(numericColumns.slice(0, 3));
@@ -165,7 +175,7 @@ const IntegratedCorrelationSection = () => {
     }
   };
 
-  const analyze = () => {
+  const analyzeLocal = () => {
     if (!sensorState.parsed || !braceletState.parsed) return;
     const matches = buildMatches(
       sensorState.parsed.rows,
@@ -185,6 +195,43 @@ const IntegratedCorrelationSection = () => {
     });
     resultsList.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
     setResults(resultsList);
+    setSource('local');
+  };
+
+  const analyze = async () => {
+    if (!sensorState.parsed || !braceletState.parsed) return;
+    if (!sensorFile || !braceletFile) {
+      analyzeLocal();
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append('sensorCsv', sensorFile);
+      form.append('braceletCsv', braceletFile);
+      form.append('sensorTime', sensorTime);
+      form.append('braceletTime', braceletTime);
+      form.append('sensorMetrics', JSON.stringify(sensorMetrics));
+      form.append('braceletMetrics', JSON.stringify(braceletMetrics));
+      form.append('toleranceMinutes', String(toleranceMinutes));
+
+      const res = await fetch(CORRELATION_URL, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`AI server error ${res.status}`);
+      const json = await res.json();
+      if (Array.isArray(json?.results)) {
+        setResults(json.results);
+        setSource('server');
+        return;
+      }
+      throw new Error('Risposta AI non valida');
+    } catch (err: any) {
+      setError(err?.message || 'Errore AI server, uso analisi locale');
+      analyzeLocal();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const summary = useMemo(() => {
@@ -199,7 +246,7 @@ const IntegratedCorrelationSection = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-3">
           <div className="p-3 rounded-2xl bg-primary/20">
             <GitMerge className="w-6 h-6 text-primary" />
           </div>
@@ -208,6 +255,12 @@ const IntegratedCorrelationSection = () => {
             <p className="text-sm text-muted-foreground">
               Incrocio dati ambientali e neuromotori per rilevare correlazioni tra esposizione e variazioni motorie.
             </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Motore:</span>
+            <span className="px-2 py-0.5 rounded-full border border-border bg-card/60">
+              {source === 'server' ? 'AI server' : source === 'local' ? 'AI locale' : 'in attesa'}
+            </span>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -381,7 +434,7 @@ const IntegratedCorrelationSection = () => {
                 canAnalyze ? 'bg-primary text-primary-foreground hover:opacity-90' : 'bg-muted text-muted-foreground'
               }`}
             >
-              Avvia analisi
+              {loading ? 'Analisi...' : 'Avvia analisi'}
             </button>
           </div>
         </div>

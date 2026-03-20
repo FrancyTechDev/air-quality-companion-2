@@ -23,6 +23,8 @@ import OperationsSection from '@/components/OperationsSection';
 import ComplianceSection from '@/components/ComplianceSection';
 import RawDataSection from '@/components/RawDataSection';
 import IntegratedCorrelationSection from '@/components/IntegratedCorrelationSection';
+import ChatbotSection from '@/components/ChatbotSection';
+import ChatbotWidget from '@/components/ChatbotWidget';
 import StatCard from '@/components/StatCard';
 import { useSensorData } from '@/hooks/useSensorData';
 import { getAirQualityInfo, calculateNeuroHealthRisk } from '@/lib/airQuality';
@@ -352,6 +354,23 @@ const Index = () => {
             <IntegratedCorrelationSection />
           </motion.div>
         );
+      case 'assistant':
+        return (
+          <motion.div
+            key="assistant"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChatbotSection
+              currentData={currentData}
+              history={history}
+              aiInsights={aiInsights}
+              activeSection={activeSection}
+            />
+          </motion.div>
+        );
 
       default:
         return null;
@@ -415,6 +434,7 @@ const Index = () => {
                   { id: 'compliance' as Section, label: 'Compliance' },
                   { id: 'raw' as Section, label: 'Raw Data' },
                   { id: 'integrated-correlation' as Section, label: 'AI Correlazione Integrata' },
+                  { id: 'assistant' as Section, label: 'Assistant' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -469,6 +489,7 @@ const Index = () => {
               {activeSection === 'compliance' && 'Compliance & Guidelines'}
               {activeSection === 'raw' && 'Raw Data'}
               {activeSection === 'integrated-correlation' && 'AI Correlazione Integrata'}
+              {activeSection === 'assistant' && 'AirWatch Assistant'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeSection === 'map' && "Tracciamento GPS e qualità dell'aria"}
@@ -492,6 +513,7 @@ const Index = () => {
               {activeSection === 'compliance' && 'Linee guida e soglie'}
               {activeSection === 'raw' && 'Dati grezzi e JSON tecnico'}
               {activeSection === 'integrated-correlation' && 'Correlazioni tra inquinamento e parametri motori'}
+              {activeSection === 'assistant' && 'Chatbot con dati interni e conoscenza generale'}
             </p>
           </div>
 
@@ -500,6 +522,13 @@ const Index = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      <ChatbotWidget
+        currentData={currentData}
+        history={history}
+        aiInsights={aiInsights}
+        activeSection={activeSection}
+      />
     </div>
   );
 };

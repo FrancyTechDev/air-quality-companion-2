@@ -32,7 +32,8 @@ export type Section =
   | 'operations'
   | 'compliance'
   | 'raw'
-  | 'integrated-correlation';
+  | 'integrated-correlation'
+  | 'assistant';
 
 interface SidebarProps {
   activeSection: Section;
@@ -62,6 +63,7 @@ const navItems = [
   { id: 'compliance' as Section, label: 'Compliance', icon: FileText },
   { id: 'raw' as Section, label: 'Raw Data', icon: BarChart3 },
   { id: 'integrated-correlation' as Section, label: 'AI Correlazione Integrata', icon: GitMerge },
+  { id: 'assistant' as Section, label: 'Assistant', icon: Sparkles },
 ];
 
 const Sidebar = ({ activeSection, onSectionChange, isConnected }: SidebarProps) => {
