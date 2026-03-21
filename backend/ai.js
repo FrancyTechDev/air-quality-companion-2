@@ -3,20 +3,26 @@ import { OpenAI } from "openai";
 
 const router = express.Router();
 
-const openai = new OpenAI({
-  apiKey:
-    process.env.XAI_API_KEY ||
-    process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL:
-    process.env.XAI_BASE_URL ||
-    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ||
-    "https://api.x.ai/v1",
-});
+const resolveApiKey = () =>
+  process.env.XAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
 
-const MODEL =
+const resolveBaseUrl = () =>
+  process.env.XAI_BASE_URL ||
+  process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ||
+  "https://api.x.ai/v1";
+
+const resolveModel = () =>
   process.env.XAI_MODEL ||
   process.env.AI_INTEGRATIONS_OPENAI_MODEL ||
-  "grok-4-fast-non-reasoning";
+  "grok-4-1-fast";
+
+const getClient = () => {
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
+    throw new Error("XAI_API_KEY missing");
+  }
+  return new OpenAI({ apiKey, baseURL: resolveBaseUrl() });
+};
 
 const truncate = (value, max = 1200) => {
   if (typeof value !== "string") return "";
@@ -69,8 +75,9 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Messaggi mancanti" });
     }
 
-    const response = await openai.chat.completions.create({
-      model: MODEL,
+    const client = getClient();
+    const response = await client.chat.completions.create({
+      model: resolveModel(),
       temperature: 0.2,
       messages: [
         { role: "system", content: buildSystemPrompt(context) },

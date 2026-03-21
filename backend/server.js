@@ -6,11 +6,14 @@ import { Server as SocketIO } from "socket.io";
 import http from "http";
 import { Pool } from "pg";
 import multer from "multer";
+import dotenv from "dotenv";
 import aiRouter from "./ai.js";
 
 // Fix __dirname in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 const server = http.createServer(app);
