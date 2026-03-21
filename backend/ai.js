@@ -3,25 +3,53 @@ import { OpenAI } from "openai";
 
 const router = express.Router();
 
-const resolveApiKey = () =>
-  process.env.XAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
+const resolveProvider = () => {
+  if (process.env.GROQ_API_KEY) return "groq";
+  if (process.env.XAI_API_KEY) return "xai";
+  if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) return "openai";
+  return "none";
+};
 
-const resolveBaseUrl = () =>
-  process.env.XAI_BASE_URL ||
-  process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ||
-  "https://api.x.ai/v1";
+const resolveApiKey = (provider) => {
+  if (provider === "groq") return process.env.GROQ_API_KEY || "";
+  if (provider === "xai") return process.env.XAI_API_KEY || "";
+  if (provider === "openai") return process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
+  return "";
+};
 
-const resolveModel = () =>
-  process.env.XAI_MODEL ||
-  process.env.AI_INTEGRATIONS_OPENAI_MODEL ||
-  "grok-4-1-fast";
+const resolveBaseUrl = (provider) => {
+  if (provider === "groq") {
+    return process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1";
+  }
+  if (provider === "xai") {
+    return process.env.XAI_BASE_URL || "https://api.x.ai/v1";
+  }
+  return process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+};
+
+const resolveModel = (provider) => {
+  if (provider === "groq") {
+    return process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  }
+  if (provider === "xai") {
+    return process.env.XAI_MODEL || "grok-4-1-fast";
+  }
+  return process.env.AI_INTEGRATIONS_OPENAI_MODEL || "gpt-4o-mini";
+};
 
 const getClient = () => {
-  const apiKey = resolveApiKey();
+  const provider = resolveProvider();
+  const apiKey = resolveApiKey(provider);
   if (!apiKey) {
-    throw new Error("XAI_API_KEY missing");
+    throw new Error("AI API key missing");
   }
-  return new OpenAI({ apiKey, baseURL: resolveBaseUrl() });
+  return {
+    client: new OpenAI({
+      apiKey,
+      baseURL: resolveBaseUrl(provider),
+    }),
+    provider,
+  };
 };
 
 const truncate = (value, max = 1200) => {
@@ -75,9 +103,9 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Messaggi mancanti" });
     }
 
-    const client = getClient();
+    const { client, provider } = getClient();
     const response = await client.chat.completions.create({
-      model: resolveModel(),
+      model: resolveModel(provider),
       temperature: 0.2,
       messages: [
         { role: "system", content: buildSystemPrompt(context) },
