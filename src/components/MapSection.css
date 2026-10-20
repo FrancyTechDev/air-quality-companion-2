@@ -1,0 +1,4 @@
+/* Darken only the basemap; sensor markers and map controls keep their colors. */
+.map-container .airwatch-dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.7);
+}

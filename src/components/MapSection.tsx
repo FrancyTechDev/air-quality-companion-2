@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import './MapSection.css';
 import { MapPin, Radio, Wind, Satellite } from 'lucide-react'; // Aggiunta icona Satellite
 import { SensorData, getMarkerColor, getAirQualityInfo } from '@/lib/airQuality';
 
@@ -99,6 +100,7 @@ const MapSection = ({ currentData, history, isConnected }: MapSectionProps) => {
 
     // OpenStreetMap standard tiles do not require an API key.
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      className: 'airwatch-dark-tiles',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(mapRef.current);
