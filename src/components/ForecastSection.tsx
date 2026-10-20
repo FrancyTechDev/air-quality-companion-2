@@ -26,10 +26,13 @@ const ForecastSection = ({ history, currentData }: ForecastSectionProps) => {
 
   useEffect(() => {
     let isMounted = true;
-    if (history.length < 10) return;
+    if (history.length < 10) {
+      setAiPredictions(null);
+      return;
+    }
 
     fetchLocalAiPredictions().then((res) => {
-      if (isMounted && res) setAiPredictions(res);
+      if (isMounted) setAiPredictions(res);
     });
 
     return () => {
@@ -125,7 +128,13 @@ const ForecastSection = ({ history, currentData }: ForecastSectionProps) => {
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gradient">AI Previsioni</h2>
-          <p className="text-sm text-muted-foreground">Previsioni basate su machine learning</p>
+          <p className="text-sm text-muted-foreground">
+            {aiPredictions?.engine?.mode === 'model'
+              ? 'Previsioni del modello sui dati dei sensori'
+              : aiPredictions
+                ? 'Stima della tendenza sui dati dei sensori'
+                : 'Stima locale: previsioni remote non disponibili'}
+          </p>
         </div>
       </div>
 
@@ -148,7 +157,7 @@ const ForecastSection = ({ history, currentData }: ForecastSectionProps) => {
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-muted-foreground">Confidenza</span>
             <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-              AI Model
+              {aiPredictions?.engine?.mode === 'model' ? 'Modello AI' : 'Stima'}
             </span>
           </div>
           <p className="text-2xl font-bold text-foreground">

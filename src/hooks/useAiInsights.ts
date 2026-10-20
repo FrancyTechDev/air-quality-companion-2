@@ -4,6 +4,7 @@ import { SensorData } from '@/lib/airQuality';
 
 const AI_INSIGHTS_URL =
   (import.meta as any).env?.VITE_AI_INSIGHTS_URL ||
+  ((import.meta as any).env?.VITE_AI_URL ? `${(import.meta as any).env.VITE_AI_URL.replace(/\/$/, '')}/ai/insights` : '') ||
   'https://ai-python-kae4.onrender.com/ai/insights';
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));

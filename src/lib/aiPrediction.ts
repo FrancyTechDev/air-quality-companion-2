@@ -28,6 +28,7 @@ const movingAverage = (data: number[], window: number): number[] => {
 };
 
 export interface PredictionResult {
+  engine?: { mode: 'model' | 'trend_estimate'; data_source: string };
   pm25Predictions: { hour: number; value: number }[];
   pm10Predictions: { hour: number; value: number }[];
   trend: 'improving' | 'stable' | 'worsening';
@@ -217,7 +218,7 @@ export const getAIInsights = async (history?: SensorData[]): Promise<AIAnalysis>
 };
 export const fetchLocalAiPredictions = async (): Promise<PredictionResult | null> => {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1200);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
     const base = (import.meta as any).env?.VITE_AI_URL || window.location.origin;

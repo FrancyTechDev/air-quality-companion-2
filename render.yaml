@@ -3,6 +3,6 @@ services:
     name: air-quality-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm ci --prefix backend --omit=dev && npm run build
     startCommand: node backend/server.js
     autoDeploy: true

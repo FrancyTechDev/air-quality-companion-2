@@ -138,8 +138,14 @@ const ChatbotPanel = ({
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error(`AI error ${res.status}`);
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const error = new Error(`AI error ${res.status}`) as Error & { userMessage?: string };
+        if (typeof json?.code === 'string' && json.code.startsWith('AI_') && typeof json?.error === 'string') {
+          error.userMessage = json.error;
+        }
+        throw error;
+      }
       const content = json?.message?.content || 'Nessuna risposta disponibile.';
 
       const assistantMessage: ChatMessage = {
@@ -154,7 +160,7 @@ const ChatbotPanel = ({
         id: `a-${Date.now()}`,
         role: 'assistant',
         content:
-          'Mi dispiace, non riesco a contattare il motore AI in questo momento. Riprova tra poco.',
+          error?.userMessage || 'Non riesco a contattare il motore AI in questo momento. Riprova tra poco.',
         createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMessage]);

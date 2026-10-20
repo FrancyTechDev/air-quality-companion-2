@@ -23,7 +23,7 @@ const loadEnv = async () => {
     }
   }
 };
-loadEnv();
+await loadEnv();
 
 const app = express();
 const server = http.createServer(app);

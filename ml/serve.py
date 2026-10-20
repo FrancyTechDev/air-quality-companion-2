@@ -1,13 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
 import pandas as pd
 import joblib
 import psycopg2
+import json
+import logging
+from functools import lru_cache
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
 DB_URL = os.getenv("DATABASE_URL")
-MODEL_PATH = Path("./models/air_quality_model.joblib")
+MODEL_PATH = Path(__file__).resolve().parent / "models" / "air_quality_model.joblib"
+DATA_API_URL = os.getenv("DATA_API_URL", "https://air-quality-companion-2.onrender.com/data")
+logger = logging.getLogger(__name__)
 LAGS = 6
 HORIZON = [1, 2, 3]
 HORIZON_PRED = [1, 2, 3, 4, 5]
@@ -29,10 +36,8 @@ def clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
 
 
-def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
-    if not DB_URL:
-        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
-    conn = psycopg2.connect(DB_URL, sslmode="require")
+def load_database_rows(hours: int, node: str | None = None) -> list:
+    conn = psycopg2.connect(DB_URL, sslmode="require", connect_timeout=5)
     try:
         with conn.cursor() as cur:
             cutoff_ms = (
@@ -52,11 +57,42 @@ def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
     finally:
         conn.close()
 
-    if not rows:
-        return pd.DataFrame(columns=["pm25", "pm10", "timestamp"])
+    return rows
+
+
+def load_recent_data(hours: int = 6, node: str | None = None) -> pd.DataFrame:
+    rows = None
+    source = "database"
+    if DB_URL:
+        try:
+            rows = load_database_rows(hours, node)
+        except psycopg2.Error as error:
+            # Do not log connection strings or credentials.
+            logger.warning("AI database unavailable (%s); trying sensor API", type(error).__name__)
+    if rows is None:
+        source = "sensor_api"
+        params = {"limit": 5000}
+        if node:
+            params["node"] = node
+        try:
+            with urlopen(f"{DATA_API_URL}?{urlencode(params)}", timeout=10) as response:
+                records = json.load(response)
+            if not isinstance(records, list):
+                raise ValueError("Invalid sensor response")
+            rows = [(item.get("pm25"), item.get("pm10"), item.get("timestamp")) for item in records]
+        except Exception as error:
+            logger.warning("AI sensor API unavailable (%s)", type(error).__name__)
+            raise HTTPException(503, detail={"code": "AI_DATA_UNAVAILABLE", "message": "Dati dei sensori non raggiungibili."}) from error
 
     df = pd.DataFrame(rows, columns=["pm25", "pm10", "timestamp"])
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
+    for column in df.columns:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True, errors="coerce")
+    df = df.dropna()
+    cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)
+    df = df[(df["timestamp"] >= cutoff) & (df["timestamp"] <= pd.Timestamp.now(tz="UTC")) & (df["pm25"] >= 0) & (df["pm10"] >= 0)]
+    df = df.sort_values("timestamp").reset_index(drop=True)
+    df.attrs["data_source"] = source
     return df
 
 
@@ -109,25 +145,30 @@ def simple_forecast(df: pd.DataFrame, horizon: list[int]) -> dict:
     return postprocess_forecast(preds, df)
 
 
+@lru_cache(maxsize=1)
 def load_model_bundle() -> dict | None:
     if not MODEL_PATH.exists():
         return None
-    return joblib.load(MODEL_PATH)
+    try:
+        return joblib.load(MODEL_PATH)
+    except Exception as error:
+        logger.warning("AI model unavailable (%s); using trend estimates", type(error).__name__)
+        return None
 
 
 def model_forecast(df: pd.DataFrame) -> dict:
     if not MODEL_PATH.exists():
-        return simple_forecast(df, HORIZON)
+        return simple_forecast(df, HORIZON_PRED)
     hourly = to_features(df, LAGS)
     if hourly.empty:
-        return simple_forecast(df, HORIZON)
+        return simple_forecast(df, HORIZON_PRED)
     if len(hourly) < LAGS:
-        return simple_forecast(df, HORIZON)
+        return simple_forecast(df, HORIZON_PRED)
     bundle = load_model_bundle()
     if not bundle:
-        return simple_forecast(df, HORIZON)
+        return simple_forecast(df, HORIZON_PRED)
     if bundle.get("r2_pm25") is not None and bundle.get("r2_pm25", 0) < 0:
-        return simple_forecast(df, HORIZON)
+        return simple_forecast(df, HORIZON_PRED)
     model = bundle["model_pm25"]
 
     preds = {}
@@ -137,7 +178,7 @@ def model_forecast(df: pd.DataFrame) -> dict:
     for h in [1, 2, 3, 4, 5]:
         features = to_features(base_series, LAGS)
         if features.empty:
-            return simple_forecast(df, HORIZON)
+            return simple_forecast(df, HORIZON_PRED)
         X = features.drop(columns=["bucket", "pm25", "pm10"])
         row = X.iloc[[-1]]
         p = float(model.predict(row)[0])
@@ -371,7 +412,7 @@ def data_quality(df: pd.DataFrame) -> dict:
     samples = len(df)
     if samples < 2:
         return {"samples": samples, "last_gap_s": None, "sample_rate_min": 0}
-    gaps = (df["timestamp"].iloc[1:].values - df["timestamp"].iloc[:-1].values) / 1e9
+    gaps = df["timestamp"].diff().dt.total_seconds().dropna().to_numpy()
     last_gap = float(gaps[-1])
     duration_min = (
         df["timestamp"].iloc[-1] - df["timestamp"].iloc[0]
@@ -599,8 +640,9 @@ def advisory(ess: float, forecast: dict, prob: float) -> list[str]:
 
 
 @app.get("/ai/insights")
-def ai_insights(node: str | None = None, hours: int = 24):
+def ai_insights(node: str | None = None, hours: int = Query(24, ge=1, le=168)):
     df = load_recent_data(hours=hours, node=node)
+    require_recent_data(df)
     realtime = realtime_metrics(df)
     exposure = exposure_metrics(df)
     forecast = model_forecast(df)
@@ -620,6 +662,7 @@ def ai_insights(node: str | None = None, hours: int = 24):
     source = source_classifier_ml(df)
 
     return {
+        "engine": engine_info(df),
         "realtime": realtime,
         "forecast": {
             "h1": forecast.get(1),
@@ -642,31 +685,37 @@ def ai_insights(node: str | None = None, hours: int = 24):
 
 @app.get("/ai/debug")
 def ai_debug():
-    if not DB_URL:
-        return {"db": "missing", "count": 0, "latest_timestamp": None}
-    conn = psycopg2.connect(DB_URL, sslmode="require")
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM sensor_data")
-            count = cur.fetchone()[0]
-            cur.execute("SELECT MAX(timestamp) FROM sensor_data")
-            latest = cur.fetchone()[0]
-    finally:
-        conn.close()
-    return {"db": "ok", "count": int(count), "latest_timestamp": latest}
+    df = load_recent_data(hours=24)
+    return {
+        "db": "ok" if df.attrs.get("data_source") == "database" else "fallback",
+        "count": len(df),
+        "latest_timestamp": int(df["timestamp"].iloc[-1].timestamp() * 1000) if not df.empty else None,
+        **engine_info(df),
+    }
+
+
+def require_recent_data(df: pd.DataFrame):
+    if df.empty:
+        raise HTTPException(503, detail={"code": "AI_NO_RECENT_DATA", "message": "Nessun campione recente: impossibile generare analisi affidabili."})
+
+
+def engine_info(df: pd.DataFrame) -> dict:
+    bundle = load_model_bundle()
+    model_usable = bool(bundle and bundle.get("model_pm25") is not None and bundle.get("r2_pm25", 0) >= 0 and len(to_features(df, LAGS)) >= LAGS)
+    return {"mode": "model" if model_usable else "trend_estimate", "data_source": df.attrs.get("data_source", "unknown")}
 
 
 @app.get("/predict")
 def predict(node: str | None = None):
     df = load_recent_data(hours=6, node=node)
+    require_recent_data(df)
     forecast = model_forecast(df)
     forecast_pm10 = model_forecast_pm10(df)
-    ratio = 1.0
-    if not df.empty and float(df["pm10"].iloc[-1]) > 0:
-        ratio = float(df["pm25"].iloc[-1]) / float(df["pm10"].iloc[-1])
+    fallback_pm25 = simple_forecast(df, HORIZON_PRED)
+    fallback_pm10 = simple_forecast(df.assign(pm25=df["pm10"]), HORIZON_PRED)
 
     pm25_preds = [
-        {"hour": h, "value": forecast.get(h) or simple_forecast(df).get(h)}
+        {"hour": h, "value": forecast[h] if forecast.get(h) is not None else fallback_pm25[h]}
         for h in HORIZON_PRED
     ]
     pm10_preds = [
@@ -675,16 +724,19 @@ def predict(node: str | None = None):
             "value": round(
                 forecast_pm10.get(h)
                 if forecast_pm10.get(h) is not None
-                else (forecast.get(h) or simple_forecast(df).get(h) or 0) / max(ratio, 0.1),
+                else fallback_pm10[h],
                 1,
             ),
         }
         for h in HORIZON_PRED
     ]
 
+    engine = engine_info(df)
+    delta = pm25_preds[-1]["value"] - float(df["pm25"].iloc[-1])
     return {
+        "engine": engine,
         "pm25Predictions": pm25_preds,
         "pm10Predictions": pm10_preds,
-        "trend": "stable",
-        "confidence": 80,
+        "trend": "worsening" if delta > 2 else "improving" if delta < -2 else "stable",
+        "confidence": round(clamp(float(load_model_bundle().get("r2_pm25", 0)), 0, 1) * 100) if engine["mode"] == "model" else 30,
     }
